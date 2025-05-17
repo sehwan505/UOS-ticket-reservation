@@ -2,9 +2,9 @@ package com.example.backend.service;
 
 import com.example.backend.dto.PaymentDto;
 import com.example.backend.dto.PaymentSaveDto;
-import com.example.backend.entity.Member;
-import com.example.backend.entity.Payment;
-import com.example.backend.entity.PointHistory;
+import com.example.backend.entity.MemberEntity;
+import com.example.backend.entity.PaymentEntity;
+import com.example.backend.entity.PointHistoryEntity;
 import com.example.backend.repository.MemberRepository;
 import com.example.backend.repository.PaymentRepository;
 import com.example.backend.repository.PointHistoryRepository;
@@ -35,7 +35,7 @@ public class PaymentService {
     
     // 결제 상세 조회
     public PaymentDto findPaymentById(String id) {
-        Payment payment = paymentRepository.findById(id)
+        PaymentEntity payment = paymentRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 결제입니다. ID: " + id));
         
         return convertToDto(payment);
@@ -43,7 +43,7 @@ public class PaymentService {
     
     // 승인번호로 결제 조회
     public PaymentDto findPaymentByApprovalNumber(String approvalNumber) {
-        Payment payment = paymentRepository.findByApprovalNumber(approvalNumber);
+        PaymentEntity payment = paymentRepository.findByApprovalNumber(approvalNumber);
         if (payment == null) {
             return null;
         }
@@ -57,7 +57,7 @@ public class PaymentService {
         String paymentId = UUID.randomUUID().toString();
         
         // 결제 기본 정보 설정
-        Payment payment = Payment.builder()
+        PaymentEntity payment = PaymentEntity.builder()
                 .id(paymentId)
                 .method(paymentSaveDto.getMethod())
                 .amount(paymentSaveDto.getAmount())
@@ -67,7 +67,7 @@ public class PaymentService {
         
         // 포인트 차감 처리
         if (paymentSaveDto.getMemberId() != null && paymentSaveDto.getDeductedPoints() > 0) {
-            Member member = memberRepository.findById(paymentSaveDto.getMemberId())
+            MemberEntity member = memberRepository.findById(paymentSaveDto.getMemberId())
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + paymentSaveDto.getMemberId()));
             
             // 포인트 부족 체크
@@ -80,7 +80,7 @@ public class PaymentService {
             member.setAvailablePoints(member.getAvailablePoints() - paymentSaveDto.getDeductedPoints());
             
             // 포인트 사용 내역 기록
-            PointHistory pointHistory = PointHistory.builder()
+            PointHistoryEntity pointHistory = PointHistoryEntity.builder()
                     .member(member)
                     .amount(paymentSaveDto.getDeductedPoints())
                     .type("U") // 사용
@@ -90,14 +90,14 @@ public class PaymentService {
             payment.setDeductedPoints(0);
         }
         
-        Payment savedPayment = paymentRepository.save(payment);
+        PaymentEntity savedPayment = paymentRepository.save(payment);
         return savedPayment.getId();
     }
     
     // 결제 진행 상태로 변경
     @Transactional
     public String processPayment(String paymentId) {
-        Payment payment = paymentRepository.findById(paymentId)
+        PaymentEntity payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 결제입니다. ID: " + paymentId));
         
         payment.setStatus("D"); // 결제중으로 변경
@@ -108,7 +108,7 @@ public class PaymentService {
     // 결제 완료 처리 (은행/카드사 결제 승인 후)
     @Transactional
     public String completePayment(String paymentId) {
-        Payment payment = paymentRepository.findById(paymentId)
+        PaymentEntity payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 결제입니다. ID: " + paymentId));
         
         // 결제 승인번호 생성 (실제로는 외부 서비스에서 받아옴)
@@ -123,20 +123,20 @@ public class PaymentService {
     // 결제 취소
     @Transactional
     public String cancelPayment(String paymentId) {
-        Payment payment = paymentRepository.findById(paymentId)
+        PaymentEntity payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 결제입니다. ID: " + paymentId));
         
         // 포인트 환불
         if (payment.getDeductedPoints() != null && payment.getDeductedPoints() > 0) {
             // 해당 예매와 연결된 회원 찾기
             if (!payment.getReservations().isEmpty() && payment.getReservations().get(0).getMember() != null) {
-                Member member = payment.getReservations().get(0).getMember();
+                MemberEntity member = payment.getReservations().get(0).getMember();
                 
                 // 포인트 환불
                 member.setAvailablePoints(member.getAvailablePoints() + payment.getDeductedPoints());
                 
                 // 포인트 적립 내역 기록 (환불)
-                PointHistory pointHistory = PointHistory.builder()
+                PointHistoryEntity pointHistory = PointHistoryEntity.builder()
                         .member(member)
                         .amount(payment.getDeductedPoints())
                         .type("A") // 적립 (환불)
@@ -156,7 +156,7 @@ public class PaymentService {
     }
     
     // Entity를 DTO로 변환
-    private PaymentDto convertToDto(Payment payment) {
+    private PaymentDto convertToDto(PaymentEntity payment) {
         return PaymentDto.builder()
                 .id(payment.getId())
                 .method(payment.getMethod())

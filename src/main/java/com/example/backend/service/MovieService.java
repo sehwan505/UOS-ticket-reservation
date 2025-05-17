@@ -2,7 +2,7 @@ package com.example.backend.service;
 
 import com.example.backend.dto.MovieDto;
 import com.example.backend.dto.MovieSaveDto;
-import com.example.backend.entity.Movie;
+import com.example.backend.entity.MovieEntity;
 import com.example.backend.repository.MovieRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -34,7 +34,7 @@ public class MovieService {
     
     // 영화 상세 조회
     public MovieDto findMovieById(Long id) {
-        Movie movie = movieRepository.findById(id)
+        MovieEntity movie = movieRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 영화입니다. ID: " + id));
         return convertToDto(movie);
     }
@@ -62,7 +62,7 @@ public class MovieService {
     // 영화 등록
     @Transactional
     public Long saveMovie(MovieSaveDto movieSaveDto) {
-        Movie movie = Movie.builder()
+        MovieEntity movie = MovieEntity.builder()
                 .title(movieSaveDto.getTitle())
                 .genre(movieSaveDto.getGenre())
                 .releaseDate(movieSaveDto.getReleaseDate())
@@ -77,14 +77,14 @@ public class MovieService {
                 .rating(0.0) // 새 영화는 평점 0으로 시작
                 .build();
         
-        Movie savedMovie = movieRepository.save(movie);
+        MovieEntity savedMovie = movieRepository.save(movie);
         return savedMovie.getId();
     }
     
     // 영화 수정
     @Transactional
     public Long updateMovie(Long id, MovieSaveDto movieSaveDto) {
-        Movie movie = movieRepository.findById(id)
+        MovieEntity movie = movieRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 영화입니다. ID: " + id));
         
         movie.setTitle(movieSaveDto.getTitle());
@@ -105,14 +105,14 @@ public class MovieService {
     // 영화 삭제
     @Transactional
     public void deleteMovie(Long id) {
-        Movie movie = movieRepository.findById(id)
+        MovieEntity movie = movieRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 영화입니다. ID: " + id));
         
         movieRepository.delete(movie);
     }
     
     // Entity를 DTO로 변환
-    private MovieDto convertToDto(Movie movie) {
+    private MovieDto convertToDto(MovieEntity movie) {
         return MovieDto.builder()
                 .id(movie.getId())
                 .title(movie.getTitle())

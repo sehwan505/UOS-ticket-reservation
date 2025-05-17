@@ -34,7 +34,7 @@ public class ReservationService {
     
     // 예매 상세 조회
     public ReservationDto findReservationById(String id) {
-        Reservation reservation = reservationRepository.findById(id)
+        ReservationEntity reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예매입니다. ID: " + id));
         
         return convertToDto(reservation);
@@ -42,7 +42,7 @@ public class ReservationService {
     
     // 회원별 예매 조회
     public List<ReservationDto> findReservationsByMember(Long memberId) {
-        Member member = memberRepository.findById(memberId)
+        MemberEntity member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + memberId));
         
         return reservationRepository.findByMember(member).stream()
@@ -52,7 +52,7 @@ public class ReservationService {
     
     // 비회원 예매 조회
     public List<ReservationDto> findReservationsByNonMember(String phoneNumber) {
-        NonMember nonMember = nonMemberRepository.findById(phoneNumber)
+        NonMemberEntity nonMember = nonMemberRepository.findById(phoneNumber)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 비회원입니다. 전화번호: " + phoneNumber));
         
         return reservationRepository.findByNonMember(nonMember).stream()
@@ -69,20 +69,20 @@ public class ReservationService {
     @Transactional
     public String saveReservation(ReservationSaveDto reservationSaveDto) {
         // 필요한 엔티티 조회
-        Schedule schedule = scheduleRepository.findById(reservationSaveDto.getScheduleId())
+        ScheduleEntity schedule = scheduleRepository.findById(reservationSaveDto.getScheduleId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상영일정입니다. ID: " + reservationSaveDto.getScheduleId()));
         
-        Seat seat = seatRepository.findById(reservationSaveDto.getSeatId())
+        SeatEntity seat = seatRepository.findById(reservationSaveDto.getSeatId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 좌석입니다. ID: " + reservationSaveDto.getSeatId()));
         
-        SeatGrade seatGrade = seat.getSeatGrade();
+        SeatGradeEntity seatGrade = seat.getSeatGrade();
         
         // 예매 ID 생성: 상영시간표번호 + 좌석번호 + 일일좌석예매횟수
         int dailyReservationCount = reservationRepository.countCompletedReservationsByScheduleId(schedule.getId()) + 1;
         String reservationId = schedule.getId() + seat.getId() + String.format("%02d", dailyReservationCount);
         
         // 예매 기본 정보 설정
-        Reservation reservation = Reservation.builder()
+        ReservationEntity reservation = ReservationEntity.builder()
                 .id(reservationId)
                 .schedule(schedule)
                 .seat(seat)
@@ -104,14 +104,14 @@ public class ReservationService {
         
         // 회원 또는 비회원 정보 설정
         if (reservationSaveDto.getMemberId() != null) {
-            Member member = memberRepository.findById(reservationSaveDto.getMemberId())
+            MemberEntity member = memberRepository.findById(reservationSaveDto.getMemberId())
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + reservationSaveDto.getMemberId()));
                     reservation.setMember(member);
         } else if (reservationSaveDto.getPhoneNumber() != null) {
-            NonMember nonMember = nonMemberRepository.findById(reservationSaveDto.getPhoneNumber())
+            NonMemberEntity nonMember = nonMemberRepository.findById(reservationSaveDto.getPhoneNumber())
                     .orElseGet(() -> {
                         // 비회원이 없으면 새로 생성
-                        NonMember newNonMember = NonMember.builder()
+                        NonMemberEntity newNonMember = NonMemberEntity.builder()
                                 .phoneNumber(reservationSaveDto.getPhoneNumber())
                                 .build();
                         return nonMemberRepository.save(newNonMember);
@@ -121,17 +121,17 @@ public class ReservationService {
             throw new IllegalArgumentException("회원 ID 또는 비회원 전화번호 중 하나는 필수입니다.");
         }
 
-        Reservation savedReservation = reservationRepository.save(reservation);
+        ReservationEntity savedReservation = reservationRepository.save(reservation);
         return savedReservation.getId();
     }
 
     // 예매 결제 완료 처리
     @Transactional
     public String completeReservation(String reservationId, String paymentId) {
-        Reservation reservation = reservationRepository.findById(reservationId)
+        ReservationEntity reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예매입니다. ID: " + reservationId));
 
-        Payment payment = paymentRepository.findById(paymentId)
+        PaymentEntity payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 결제입니다. ID: " + paymentId));
 
         // 예매 상태 업데이트
@@ -144,7 +144,7 @@ public class ReservationService {
     // 예매 취소
     @Transactional
     public String cancelReservation(String reservationId) {
-        Reservation reservation = reservationRepository.findById(reservationId)
+        ReservationEntity reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예매입니다. ID: " + reservationId));
 
         // 이미 발권된 티켓은 취소할 수 없음
@@ -161,7 +161,7 @@ public class ReservationService {
     // 티켓 발권 처리
     @Transactional
     public String issueTicket(String reservationId) {
-        Reservation reservation = reservationRepository.findById(reservationId)
+        ReservationEntity reservation = reservationRepository.findById(reservationId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예매입니다. ID: " + reservationId));
 
         // 예매가 완료된 경우만 발권 가능
@@ -176,7 +176,7 @@ public class ReservationService {
     }
 
     // Entity를 DTO로 변환
-    private ReservationDto convertToDto(Reservation reservation) {
+    private ReservationDto convertToDto(ReservationEntity reservation) {
         ReservationDto dto = ReservationDto.builder()
                 .id(reservation.getId())
                 .scheduleId(reservation.getSchedule().getId())

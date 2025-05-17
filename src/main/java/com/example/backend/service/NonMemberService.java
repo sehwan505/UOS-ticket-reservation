@@ -1,6 +1,6 @@
 package com.example.backend.service;
 
-import com.example.backend.domain.NonMember;
+import com.example.backend.entity.NonMemberEntity;
 import com.example.backend.repository.NonMemberRepository;
 //import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +15,7 @@ public class NonMemberService {
     private final NonMemberRepository nonMemberRepository;
 
     @Transactional(readOnly = true)
-    public List<NonMember> findAllNonMembers() {
+    public List<NonMemberEntity> findAllNonMembers() {
         return nonMemberRepository.findAll();
     }
 }

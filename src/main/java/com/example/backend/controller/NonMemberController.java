@@ -1,6 +1,6 @@
 package com.example.backend.controller;
 
-import com.example.backend.domain.NonMember;
+import com.example.backend.entity.NonMemberEntity;
 import com.example.backend.service.NonMemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -17,7 +17,7 @@ public class NonMemberController {
 
     @GetMapping("/nonmember")
     public String showMemberInfo(Model model) {
-        List<NonMember> allNonMembers = nonMemberService.findAllNonMembers();
+        List<NonMemberEntity> allNonMembers = nonMemberService.findAllNonMembers();
         model.addAttribute("nonMembers", allNonMembers);
         return "home";
     }

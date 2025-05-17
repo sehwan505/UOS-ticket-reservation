@@ -13,7 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SeatGrade {
+public class SeatGradeEntity {
 
     @Id
     @Column(name = "seat_grade_id", length = 1)
@@ -26,5 +26,5 @@ public class SeatGrade {
     private Integer price;
 
     @OneToMany(mappedBy = "seatGrade", cascade = CascadeType.ALL)
-    private List<Seat> seats = new ArrayList<>();
+    private List<SeatEntity> seats = new ArrayList<>();
 }

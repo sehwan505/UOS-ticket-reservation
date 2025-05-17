@@ -7,28 +7,31 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "cinema")
+@Table(name = "screen")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Cinema {
+public class ScreenEntity {
 
     @Id
-    @Column(name = "cinema_id", length = 2)
+    @Column(name = "screen_id", length = 2)
     private String id;
 
-    @Column(name = "cinema_name", length = 10)
+    @Column(name = "screen_name", length = 10)
     private String name;
 
-    @Column(name = "cinema_location", length = 128)
-    private String location;
+    @Column(name = "total_seats")
+    private Integer totalSeats;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "region_id")
-    private Region region;
+    @JoinColumn(name = "cinema_id")
+    private CinemaEntity cinema;
 
-    @OneToMany(mappedBy = "cinema", cascade = CascadeType.ALL)
-    private List<Screen> screens = new ArrayList<>();
+    @OneToMany(mappedBy = "screen", cascade = CascadeType.ALL)
+    private List<SeatEntity> seats = new ArrayList<>();
+
+    @OneToMany(mappedBy = "screen", cascade = CascadeType.ALL)
+    private List<ScheduleEntity> schedules = new ArrayList<>();
 }

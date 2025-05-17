@@ -3,6 +3,7 @@ package com.example.backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,7 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Seat {
+public class SeatEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,7 +23,7 @@ public class Seat {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seat_grade_id")
-    private SeatGrade seatGrade;
+    private SeatGradeEntity seatGrade;
 
     @Column(name = "row_id", length = 1)
     private String row;
@@ -32,10 +33,10 @@ public class Seat {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "screen_id")
-    private Screen screen;
+    private ScreenEntity screen;
 
     @OneToMany(mappedBy = "seat", cascade = CascadeType.ALL)
-    private List<Reservation> reservations = new ArrayList<>();
+    private List<ReservationEntity> reservations = new ArrayList<>();
 
     public String getSeatLabel() {
         return row + column;

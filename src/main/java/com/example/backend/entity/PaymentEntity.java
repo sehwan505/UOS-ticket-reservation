@@ -14,7 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Payment extends BaseTimeEntity {
+public class PaymentEntity extends BaseTimeEntity {
 
     @Id
     @Column(name = "payment_id", length = 30)
@@ -39,5 +39,5 @@ public class Payment extends BaseTimeEntity {
     private String approvalNumber;
 
     @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL)
-    private List<Reservation> reservations = new ArrayList<>();
+    private List<ReservationEntity> reservations = new ArrayList<>();
 }

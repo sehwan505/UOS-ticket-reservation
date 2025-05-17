@@ -3,6 +3,7 @@ package com.example.backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Movie extends BaseTimeEntity {
+public class MovieEntity extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -55,24 +56,42 @@ public class Movie extends BaseTimeEntity {
     private String image;
 
     @Column(name = "movie_rating", precision = 3, scale = 2)
-    private Double rating;
+    private BigDecimal rating;
 
     @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Schedule> schedules = new ArrayList<>();
+    private List<ScheduleEntity> schedules = new ArrayList<>();
     
     @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Review> reviews = new ArrayList<>();
+    private List<ReviewEntity> reviews = new ArrayList<>();
+
+    // rating getter (convert datatype)
+    public double getRating() {
+        return rating != null ? rating.doubleValue() : 0.0;
+    }
+
+    // rating setter (convert datatype)
+    public void setRating(double rating) {
+        this.rating = BigDecimal.valueOf(rating);
+    }
+
+    // rating builder (convert datatype)
+    public static class MovieEntityBuilder {
+        public MovieEntityBuilder rating(double rating) {
+            this.rating = BigDecimal.valueOf(rating);
+            return this;
+        }
+    }
 
     // 평점 업데이트 메서드
     public void updateRating() {
         if (reviews.isEmpty()) {
-            this.rating = 0.0;
+            this.rating = BigDecimal.ZERO;
             return;
         }
         
         double sum = reviews.stream()
-                .mapToInt(Review::getRatingValue)
+                .mapToInt(ReviewEntity::getRatingValue)
                 .sum();
-        this.rating = sum / reviews.size();
+        this.rating = BigDecimal.valueOf(sum / reviews.size());
     }
 }

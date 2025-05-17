@@ -18,7 +18,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Member extends BaseTimeEntity implements UserDetails {
+public class MemberEntity extends BaseTimeEntity implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -47,13 +47,13 @@ public class Member extends BaseTimeEntity implements UserDetails {
     private Integer availablePoints;
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
-    private List<PointHistory> pointHistories = new ArrayList<>();
+    private List<PointHistoryEntity> pointHistories = new ArrayList<>();
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
-    private List<Review> reviews = new ArrayList<>();
+    private List<ReviewEntity> reviews = new ArrayList<>();
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
-    private List<Reservation> reservations = new ArrayList<>();
+    private List<ReservationEntity> reservations = new ArrayList<>();
 
     // UserDetails 구현 메서드
     @Override

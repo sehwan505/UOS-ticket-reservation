@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Reservation extends BaseTimeEntity {
+public class ReservationEntity extends BaseTimeEntity {
 
     @Id
     @Column(name = "reservation_id", length = 14)
@@ -20,18 +20,18 @@ public class Reservation extends BaseTimeEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "schedule_id")
-    private Schedule schedule;
+    private ScheduleEntity schedule;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seat_id")
-    private Seat seat;
+    private SeatEntity seat;
 
     @Column(name = "reservation_status", length = 1)
     private String status; // N: 예매미완료, D: 예매취소중, Y: 예매완료
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seat_grade_id")
-    private SeatGrade seatGrade;
+    private SeatGradeEntity seatGrade;
 
     @Column(name = "reservation_time")
     private LocalDateTime reservationTime;
@@ -50,15 +50,15 @@ public class Reservation extends BaseTimeEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payment_id")
-    private Payment payment;
+    private PaymentEntity payment;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id")
-    private Member member;
+    private MemberEntity member;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "phone_number")
-    private NonMember nonMember;
+    private NonMemberEntity nonMember;
 
     @Column(name = "ticket_issuance_status", length = 1)
     private String ticketIssuanceStatus; // N: 미발권, Y: 발권

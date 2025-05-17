@@ -14,7 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Schedule {
+public class ScheduleEntity {
 
     @Id
     @Column(name = "schedule_id", length = 8)
@@ -22,11 +22,11 @@ public class Schedule {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "movie_id")
-    private Movie movie;
+    private MovieEntity movie;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "screen_id")
-    private Screen screen;
+    private ScreenEntity screen;
 
     @Column(name = "screening_date", length = 8)
     private String screeningDate;
@@ -35,5 +35,5 @@ public class Schedule {
     private LocalDateTime screeningStartTime;
 
     @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL)
-    private List<Reservation> reservations = new ArrayList<>();
+    private List<ReservationEntity> reservations = new ArrayList<>();
 }

@@ -13,7 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Region {
+public class RegionEntity {
 
     @Id
     @Column(name = "region_id", length = 2)
@@ -23,5 +23,5 @@ public class Region {
     private String name;
 
     @OneToMany(mappedBy = "region", cascade = CascadeType.ALL)
-    private List<Cinema> cinemas = new ArrayList<>();
+    private List<CinemaEntity> cinemas = new ArrayList<>();
 }
