@@ -3,19 +3,20 @@ package com.example.backend.controller;
 import com.example.backend.dto.*;
 import com.example.backend.service.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Controller
-@RequestMapping("/reservations")
+@RestController
+@RequestMapping("/api/reservations")
 @RequiredArgsConstructor
 public class ReservationController {
 
@@ -27,46 +28,46 @@ public class ReservationController {
     private final MemberService memberService;
     private final BankService bankService;
 
-    // 영화 예매 시작 페이지
+    // 현재 상영중인 영화 목록 조회
     @GetMapping("/movies")
-    public String selectMovie(Model model) {
-        // 현재 상영중인 영화 목록
+    public ResponseEntity<List<MovieDto>> getNowShowingMovies() {
         List<MovieDto> nowShowingMovies = movieService.findMoviesByScreeningStatus("D", null).getContent();
-        model.addAttribute("movies", nowShowingMovies);
-        return "reservations/select_movie";
+        return ResponseEntity.ok(nowShowingMovies);
     }
 
-    // 상영일 선택 페이지
+    // 영화별 상영 가능 날짜 조회
     @GetMapping("/movies/{movieId}/dates")
-    public String selectDate(@PathVariable Long movieId, Model model) {
+    public ResponseEntity<Map<String, Object>> getAvailableDates(@PathVariable Long movieId) {
         MovieDto movie = movieService.findMovieById(movieId);
         List<String> availableDates = scheduleService.findAvailableDatesForMovie(movieId);
         
-        model.addAttribute("movie", movie);
-        model.addAttribute("dates", availableDates);
+        Map<String, Object> response = new HashMap<>();
+        response.put("movie", movie);
+        response.put("dates", availableDates);
         
-        return "reservations/select_date";
+        return ResponseEntity.ok(response);
     }
 
-    // 상영시간 선택 페이지
+    // 영화 및 날짜별 상영 스케줄 조회
     @GetMapping("/movies/{movieId}/dates/{date}")
-    public String selectTime(@PathVariable Long movieId, 
-                            @PathVariable String date, 
-                            Model model) {
+    public ResponseEntity<Map<String, Object>> getSchedulesByDate(
+            @PathVariable Long movieId, 
+            @PathVariable String date) {
         
         MovieDto movie = movieService.findMovieById(movieId);
         List<ScheduleDto> schedules = scheduleService.findSchedulesByMovieAndDate(movieId, date);
         
-        model.addAttribute("movie", movie);
-        model.addAttribute("date", date);
-        model.addAttribute("schedules", schedules);
+        Map<String, Object> response = new HashMap<>();
+        response.put("movie", movie);
+        response.put("date", date);
+        response.put("schedules", schedules);
         
-        return "reservations/select_time";
+        return ResponseEntity.ok(response);
     }
 
-    // 좌석 선택 페이지
+    // 스케줄별 좌석 정보 조회
     @GetMapping("/schedules/{scheduleId}/seats")
-    public String selectSeat(@PathVariable String scheduleId, Model model) {
+    public ResponseEntity<Map<String, Object>> getSeatsForSchedule(@PathVariable String scheduleId) {
         ScheduleDto schedule = scheduleService.findScheduleById(scheduleId);
         MovieDto movie = movieService.findMovieById(schedule.getMovieId());
         
@@ -76,20 +77,20 @@ public class ReservationController {
         // 이미 예약된 좌석 ID 목록
         List<Integer> reservedSeatIds = reservationService.findReservedSeatsBySchedule(scheduleId);
         
-        model.addAttribute("schedule", schedule);
-        model.addAttribute("movie", movie);
-        model.addAttribute("seats", seats);
-        model.addAttribute("reservedSeatIds", reservedSeatIds);
+        Map<String, Object> response = new HashMap<>();
+        response.put("schedule", schedule);
+        response.put("movie", movie);
+        response.put("seats", seats);
+        response.put("reservedSeatIds", reservedSeatIds);
         
-        return "reservations/select_seat";
+        return ResponseEntity.ok(response);
     }
 
-    // 결제 정보 입력 페이지
+    // 예매 정보 조회
     @GetMapping("/confirm")
-    public String confirmReservation(
+    public ResponseEntity<Map<String, Object>> getReservationInfo(
             @RequestParam String scheduleId,
-            @RequestParam Integer seatId,
-            Model model) {
+            @RequestParam Integer seatId) {
         
         // 스케줄 및 좌석 정보 조회
         ScheduleDto schedule = scheduleService.findScheduleById(scheduleId);
@@ -102,22 +103,23 @@ public class ReservationController {
         
         if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
             member = memberService.findMemberByUserId(auth.getName());
-            model.addAttribute("member", member);
         }
         
-        model.addAttribute("schedule", schedule);
-        model.addAttribute("seat", seat);
-        model.addAttribute("movie", movie);
-        model.addAttribute("paymentForm", new PaymentSaveDto());
+        Map<String, Object> response = new HashMap<>();
+        response.put("schedule", schedule);
+        response.put("seat", seat);
+        response.put("movie", movie);
+        if (member != null) {
+            response.put("member", member);
+        }
         
-        return "reservations/confirm";
+        return ResponseEntity.ok(response);
     }
 
     // 예매 처리 (결제 포함)
     @PostMapping
-    @ResponseBody
     public ResponseEntity<Map<String, Object>> processReservation(
-            @RequestBody ReservationProcessDto processDto) {
+            @Valid @RequestBody ReservationProcessDto processDto) {
         
         try {
             // 1. 예매 정보 저장
@@ -174,61 +176,49 @@ public class ReservationController {
         }
     }
 
-    // 예매 완료 페이지
-    @GetMapping("/complete/{reservationId}")
-    public String reservationComplete(@PathVariable String reservationId, Model model) {
+    // 예매 상세 정보 조회
+    @GetMapping("/{reservationId}")
+    public ResponseEntity<ReservationDto> getReservationDetail(@PathVariable String reservationId) {
         ReservationDto reservation = reservationService.findReservationById(reservationId);
-        model.addAttribute("reservation", reservation);
-        return "reservations/complete";
+        return ResponseEntity.ok(reservation);
     }
 
     // 회원 예매 내역 조회
     @GetMapping("/my")
     @PreAuthorize("isAuthenticated()")
-    public String myReservations(Model model) {
+    public ResponseEntity<List<ReservationDto>> getMyReservations() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         MemberDto member = memberService.findMemberByUserId(auth.getName());
         
         List<ReservationDto> reservations = reservationService.findReservationsByMember(member.getId());
-        model.addAttribute("reservations", reservations);
-        
-        return "reservations/my_reservations";
+        return ResponseEntity.ok(reservations);
     }
 
     // 비회원 예매 내역 조회
-    @GetMapping("/non-member")
-    public String nonMemberReservationForm() {
-        return "reservations/non_member_form";
-    }
-
-    // 비회원 예매 확인
-    @PostMapping("/non-member/check")
-    public String checkNonMemberReservation(
+    @GetMapping("/non-member/check")
+    public ResponseEntity<?> getNonMemberReservation(
             @RequestParam String phoneNumber,
-            @RequestParam String reservationId,
-            Model model) {
+            @RequestParam String reservationId) {
         
         try {
             ReservationDto reservation = reservationService.findReservationById(reservationId);
             
             // 전화번호 확인
             if (reservation.getPhoneNumber() == null || !reservation.getPhoneNumber().equals(phoneNumber)) {
-                model.addAttribute("error", "예약 정보가 일치하지 않습니다.");
-                return "reservations/non_member_form";
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "예약 정보가 일치하지 않습니다."));
             }
             
-            model.addAttribute("reservation", reservation);
-            return "reservations/non_member_detail";
+            return ResponseEntity.ok(reservation);
             
         } catch (Exception e) {
-            model.addAttribute("error", "존재하지 않는 예약입니다.");
-            return "reservations/non_member_form";
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "존재하지 않는 예약입니다."));
         }
     }
 
     // 예매 취소
-    @PostMapping("/{reservationId}/cancel")
-    @ResponseBody
+    @DeleteMapping("/{reservationId}")
     public ResponseEntity<Map<String, Object>> cancelReservation(@PathVariable String reservationId) {
         try {
             ReservationDto reservation = reservationService.findReservationById(reservationId);
@@ -260,15 +250,19 @@ public class ReservationController {
         }
     }
 
-    // 티켓 발권
+    // 티켓 발급
     @PostMapping("/{reservationId}/issue")
-    @ResponseBody
     public ResponseEntity<Map<String, String>> issueTicket(@PathVariable String reservationId) {
         try {
-            reservationService.issueTicket(reservationId);
-            return ResponseEntity.ok(Map.of("message", "티켓이 발급되었습니다."));
+            String ticketUrl = reservationService.issueTicket(reservationId);
+            return ResponseEntity.ok(Map.of(
+                    "ticketUrl", ticketUrl,
+                    "message", "티켓이 발급되었습니다."
+            ));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", e.getMessage()
+            ));
         }
     }
 }

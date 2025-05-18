@@ -30,7 +30,7 @@ public class ReviewEntity extends BaseTimeEntity {
     @Column(name = "rating_value")
     private Integer ratingValue; // 1-5점
 
-    @Column(name = "review_content", columnDefinition = "TEXT")
+    @Column(name = "review_content", columnDefinition = "CLOB")
     private String content;
 
     @Column(name = "created_at")

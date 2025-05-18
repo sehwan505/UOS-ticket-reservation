@@ -11,19 +11,20 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Controller
+@RestController
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class MemberController {
 
@@ -31,134 +32,92 @@ public class MemberController {
     private final ReservationService reservationService;
     private final PointHistoryService pointHistoryService;
 
-    // 회원가입 폼
-    @GetMapping("/signup")
-    public String signupForm(Model model) {
-        model.addAttribute("memberForm", new MemberSaveDto());
-        return "members/signup";
-    }
-
-    // 회원가입 처리
+    // 회원가입
     @PostMapping("/signup")
-    public String signup(@Validated @ModelAttribute("memberForm") MemberSaveDto memberSaveDto,
-                         BindingResult result) {
-        
-        // 유효성 검사
-        if (result.hasErrors()) {
-            return "members/signup";
-        }
-        
+    public ResponseEntity<?> signup(@Valid @RequestBody MemberSaveDto memberSaveDto) {
         // 아이디 중복 체크
         if (memberService.checkUserIdDuplicate(memberSaveDto.getUserId())) {
-            result.rejectValue("userId", "duplicate", "이미 사용중인 아이디입니다.");
-            return "members/signup";
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "duplicate",
+                    "message", "이미 사용중인 아이디입니다."
+            ));
         }
         
         // 회원가입 처리
-        memberService.saveMember(memberSaveDto);
+        Long memberId = memberService.saveMember(memberSaveDto);
         
-        return "redirect:/login";
-    }
-
-    // 로그인 페이지
-    @GetMapping("/login")
-    public String loginForm() {
-        return "members/login";
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "id", memberId,
+                "message", "회원가입이 완료되었습니다."
+        ));
     }
 
     // 회원정보 조회
     @GetMapping("/members/my")
     @PreAuthorize("isAuthenticated()")
-    public String myProfile(Model model) {
+    public ResponseEntity<MemberDto> getMyProfile() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         MemberDto member = memberService.findMemberByUserId(auth.getName());
         
-        model.addAttribute("member", member);
-        
-        return "members/profile";
+        return ResponseEntity.ok(member);
     }
 
-    // 회원정보 수정 폼
-    @GetMapping("/members/my/edit")
+    // 회원정보 수정
+    @PutMapping("/members/my")
     @PreAuthorize("isAuthenticated()")
-    public String editProfileForm(Model model) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        MemberDto member = memberService.findMemberByUserId(auth.getName());
-        
-        MemberSaveDto memberForm = MemberSaveDto.builder()
-                .userId(member.getUserId())
-                .email(member.getEmail())
-                .phoneNumber(member.getPhoneNumber())
-                .build();
-        
-        model.addAttribute("memberForm", memberForm);
-        
-        return "members/edit_profile";
-    }
-
-    // 회원정보 수정 처리
-    @PostMapping("/members/my")
-    @PreAuthorize("isAuthenticated()")
-    public String updateProfile(@Validated @ModelAttribute("memberForm") MemberSaveDto memberSaveDto,
-                               BindingResult result) {
-        
-        if (result.hasErrors()) {
-            return "members/edit_profile";
-        }
-        
+    public ResponseEntity<?> updateProfile(@Valid @RequestBody MemberSaveDto memberSaveDto) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         MemberDto member = memberService.findMemberByUserId(auth.getName());
         
         memberService.updateMember(member.getId(), memberSaveDto);
         
-        return "redirect:/members/my";
+        return ResponseEntity.ok(Map.of("message", "회원정보가 수정되었습니다."));
     }
 
     // 포인트 내역 조회
     @GetMapping("/members/my/points")
     @PreAuthorize("isAuthenticated()")
-    public String myPoints(
-            @PageableDefault(size = 10) Pageable pageable,
-            Model model) {
+    public ResponseEntity<Map<String, Object>> getMyPoints(
+            @PageableDefault(size = 10) Pageable pageable) {
         
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         MemberDto member = memberService.findMemberByUserId(auth.getName());
         
         Page<PointHistoryDto> pointHistory = pointHistoryService.findPointHistoryByMember(member.getId(), pageable);
         
-        model.addAttribute("member", member);
-        model.addAttribute("pointHistory", pointHistory);
+        Map<String, Object> response = new HashMap<>();
+        response.put("member", member);
+        response.put("pointHistory", pointHistory);
         
-        return "members/points";
+        return ResponseEntity.ok(response);
     }
 
-    // 아이디 중복 체크 API
-    @GetMapping("/api/members/check-id")
-    @ResponseBody
-    public Map<String, Boolean> checkUserIdDuplicate(@RequestParam String userId) {
+    // 아이디 중복 체크
+    @GetMapping("/members/check-id")
+    public ResponseEntity<Map<String, Boolean>> checkUserIdDuplicate(@RequestParam String userId) {
         boolean isDuplicate = memberService.checkUserIdDuplicate(userId);
-        return Map.of("duplicate", isDuplicate);
+        return ResponseEntity.ok(Map.of("duplicate", isDuplicate));
     }
 
     // 관리자용 회원 목록 조회
     @GetMapping("/admin/members")
     @PreAuthorize("hasRole('ADMIN')")
-    public String memberList(Model model) {
+    public ResponseEntity<List<MemberDto>> getMemberList() {
         List<MemberDto> members = memberService.findAllMembers();
-        model.addAttribute("members", members);
-        return "admin/members/list";
+        return ResponseEntity.ok(members);
     }
 
     // 관리자용 회원 상세 조회
     @GetMapping("/admin/members/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public String memberDetail(@PathVariable Long id, Model model) {
+    public ResponseEntity<Map<String, Object>> getMemberDetail(@PathVariable Long id) {
         MemberDto member = memberService.findMemberById(id);
         List<ReservationDto> reservations = reservationService.findReservationsByMember(id);
         
-        model.addAttribute("member", member);
-        model.addAttribute("reservations", reservations);
+        Map<String, Object> response = new HashMap<>();
+        response.put("member", member);
+        response.put("reservations", reservations);
         
-        return "admin/members/detail";
+        return ResponseEntity.ok(response);
     }
 }

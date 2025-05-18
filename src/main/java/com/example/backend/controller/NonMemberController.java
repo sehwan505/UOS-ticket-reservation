@@ -3,22 +3,23 @@ package com.example.backend.controller;
 import com.example.backend.entity.NonMemberEntity;
 import com.example.backend.service.NonMemberService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@Controller
+@RestController
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class NonMemberController {
 
     private final NonMemberService nonMemberService;
 
-    @GetMapping("/nonmember")
-    public String showMemberInfo(Model model) {
+    @GetMapping("/nonmembers")
+    public ResponseEntity<List<NonMemberEntity>> getAllNonMembers() {
         List<NonMemberEntity> allNonMembers = nonMemberService.findAllNonMembers();
-        model.addAttribute("nonMembers", allNonMembers);
-        return "home";
+        return ResponseEntity.ok(allNonMembers);
     }
 }
