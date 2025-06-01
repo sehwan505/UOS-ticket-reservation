@@ -17,7 +17,7 @@ import java.util.List;
 public class PaymentEntity extends BaseTimeEntity {
 
     @Id
-    @Column(name = "payment_id", length = 30)
+    @Column(name = "payment_id", length = 36)
     private String id;
 
     @Column(name = "payment_method", length = 20)
