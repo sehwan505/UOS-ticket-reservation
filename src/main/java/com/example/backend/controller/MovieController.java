@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
@@ -71,8 +72,12 @@ public class MovieController {
     public ResponseEntity<Page<MovieDto>> getMovies(
             @Parameter(description = "상영 상태 (D: 상영중, U: 상영예정, E: 상영종료)")
             @RequestParam(required = false) String status,
-            @Parameter(description = "페이징 정보")
-            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+            @Parameter(description = "페이지 번호", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기", example = "10") 
+            @RequestParam(defaultValue = "10") int size) {
+        
+        Pageable pageable = PageRequest.of(page, size);
         
         Page<MovieDto> movies;
         if (status != null && !status.isEmpty()) {

@@ -21,6 +21,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -378,8 +379,12 @@ public class MemberController {
         )
     })
     public ResponseEntity<Map<String, Object>> getMyPoints(
-            @Parameter(description = "페이징 정보")
-            @PageableDefault(size = 10) Pageable pageable) {
+            @Parameter(description = "페이지 번호", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기", example = "10") 
+            @RequestParam(defaultValue = "10") int size) {
+        
+        Pageable pageable = PageRequest.of(page, size);
         
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         MemberDto member = memberService.findMemberByUserId(auth.getName());
