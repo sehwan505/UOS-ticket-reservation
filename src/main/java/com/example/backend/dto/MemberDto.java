@@ -19,11 +19,11 @@ public class MemberDto {
     // 회원 등급 텍스트 반환
     public String getGradeText() {
         return switch (grade) {
-            case "1" -> "일반";
-            case "2" -> "실버";
-            case "3" -> "골드";
-            case "4" -> "VIP";
-            case "9" -> "관리자";
+            case "B" -> "브론즈";
+            case "S" -> "실버";
+            case "G" -> "골드";
+            case "P" -> "플래티넘";
+            case "A" -> "관리자";
             default -> "일반";
         };
     }

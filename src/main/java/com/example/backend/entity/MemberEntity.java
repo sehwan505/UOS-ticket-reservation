@@ -58,6 +58,13 @@ public class MemberEntity extends BaseTimeEntity implements UserDetails {
     // UserDetails 구현 메서드
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        // grade가 "A"인 경우 관리자 권한 부여
+        if ("A".equals(this.grade)) {
+            return List.of(
+                new SimpleGrantedAuthority("ROLE_ADMIN"),
+                new SimpleGrantedAuthority("ROLE_USER")
+            );
+        }
         return Collections.singleton(new SimpleGrantedAuthority("ROLE_USER"));
     }
 
