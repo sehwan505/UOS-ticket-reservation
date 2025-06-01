@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 public class ReservationEntity extends BaseTimeEntity {
 
     @Id
-    @Column(name = "reservation_id", length = 14)
+    @Column(name = "reservation_id", length = 32)
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
