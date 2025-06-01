@@ -37,27 +37,6 @@ public class ReservationController {
     private final MemberService memberService;
     private final BankService bankService;
 
-    // 현재 상영중인 영화 목록 조회
-    @GetMapping("/movies")
-    @Operation(
-        summary = "상영중인 영화 목록 조회",
-        description = "현재 상영중인 영화 목록을 조회합니다."
-    )
-    @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "200",
-            description = "상영중인 영화 목록 조회 성공",
-            content = @Content(
-                mediaType = "application/json",
-                schema = @Schema(implementation = MovieDto.class)
-            )
-        )
-    })
-    public ResponseEntity<List<MovieDto>> getNowShowingMovies() {
-        List<MovieDto> nowShowingMovies = movieService.findMoviesByScreeningStatus("D", null).getContent();
-        return ResponseEntity.ok(nowShowingMovies);
-    }
-
     // 영화별 상영 가능 날짜 조회
     @GetMapping("/movies/{movieId}/dates")
     @Operation(
@@ -264,7 +243,7 @@ public class ReservationController {
         SeatDto seat = seatService.findSeatById(seatId);
         MovieDto movie = movieService.findMovieById(schedule.getMovieId());
         
-        // 로그인 회원 정보 가져오기
+        // JWT에서 로그인 회원 정보 가져오기
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         MemberDto member = null;
         
@@ -283,16 +262,114 @@ public class ReservationController {
         return ResponseEntity.ok(response);
     }
 
-    // 예매 처리 (결제 포함)
-    @PostMapping
+    // 예매 생성 (결제 전 단계)
+    @PostMapping("/create")
     @Operation(
-        summary = "예매 처리",
-        description = "영화 예매를 처리하고 결제를 진행합니다."
+        summary = "예매 생성",
+        description = "영화 예매를 생성합니다. (결제 전 단계)"
     )
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200",
-            description = "예매 성공",
+            description = "예매 생성 성공",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "성공 응답",
+                    value = """
+                    {
+                        "status": "SUCCESS",
+                        "reservationId": "R123456789",
+                        "message": "예매가 생성되었습니다."
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "예매 생성 실패",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "실패 응답",
+                    value = """
+                    {
+                        "status": "FAIL",
+                        "message": "이미 예약된 좌석입니다."
+                    }
+                    """
+                )
+            )
+        )
+    })
+    public ResponseEntity<Map<String, Object>> createReservation(
+            @Parameter(
+                description = "예매 생성 정보",
+                required = true,
+                content = @Content(
+                    examples = @ExampleObject(
+                        name = "예매 생성 요청",
+                        value = """
+                        {
+                            "scheduleId": "SCH001",
+                            "seatId": 1,
+                            "phoneNumber": "010-1234-5678",
+                            "discountCode": "STUDENT",
+                            "discountAmount": 2000
+                        }
+                        """
+                    )
+                )
+            )
+            @Valid @RequestBody ReservationCreateDto createDto) {
+        
+        try {
+            // JWT에서 회원 정보 추출 (로그인한 경우)
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            Long memberId = null;
+            
+            if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
+                MemberDto member = memberService.findMemberByUserId(auth.getName());
+                memberId = member.getId();
+            }
+            
+            // 예매 정보 저장
+            String reservationId = reservationService.saveReservation(
+                    ReservationSaveDto.builder()
+                            .scheduleId(createDto.getScheduleId())
+                            .seatId(createDto.getSeatId())
+                            .memberId(memberId)
+                            .phoneNumber(createDto.getPhoneNumber())
+                            .discountCode(createDto.getDiscountCode())
+                            .discountAmount(createDto.getDiscountAmount())
+                            .build()
+            );
+            
+            return ResponseEntity.ok(Map.of(
+                    "status", "SUCCESS",
+                    "reservationId", reservationId,
+                    "message", "예매가 생성되었습니다."
+            ));
+            
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "FAIL",
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    // 예매 결제 처리
+    @PostMapping("/{reservationId}/payment")
+    @Operation(
+        summary = "예매 결제 처리",
+        description = "생성된 예매에 대해 결제를 처리합니다."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "결제 성공",
             content = @Content(
                 mediaType = "application/json",
                 examples = @ExampleObject(
@@ -302,7 +379,7 @@ public class ReservationController {
                         "status": "SUCCESS",
                         "reservationId": "R123456789",
                         "approvalNumber": "AP123456789",
-                        "message": "예매가 완료되었습니다."
+                        "message": "결제가 완료되었습니다."
                     }
                     """
                 )
@@ -310,7 +387,7 @@ public class ReservationController {
         ),
         @ApiResponse(
             responseCode = "400",
-            description = "예매 실패",
+            description = "결제 실패",
             content = @Content(
                 mediaType = "application/json",
                 examples = @ExampleObject(
@@ -325,74 +402,72 @@ public class ReservationController {
             )
         )
     })
-    public ResponseEntity<Map<String, Object>> processReservation(
+    public ResponseEntity<Map<String, Object>> processPayment(
+            @Parameter(description = "예매 ID", required = true)
+            @PathVariable String reservationId,
             @Parameter(
-                description = "예매 처리 정보",
+                description = "결제 정보",
                 required = true,
                 content = @Content(
                     examples = @ExampleObject(
-                        name = "예매 요청",
+                        name = "결제 요청",
                         value = """
                         {
-                            "scheduleId": "SCH001",
-                            "seatId": 1,
-                            "memberId": 1,
-                            "phoneNumber": "010-1234-5678",
                             "paymentMethod": "card",
-                            "amount": 12000,
+                            "amount": 10000,
                             "cardOrAccountNumber": "1234-5678-9012-3456",
-                            "discountCode": "STUDENT",
-                            "discountAmount": 2000,
                             "deductedPoints": 500
                         }
                         """
                     )
                 )
             )
-            @Valid @RequestBody ReservationProcessDto processDto) {
+            @Valid @RequestBody PaymentProcessDto paymentDto) {
         
         try {
-            // 1. 예매 정보 저장
-            String reservationId = reservationService.saveReservation(
-                    ReservationSaveDto.builder()
-                            .scheduleId(processDto.getScheduleId())
-                            .seatId(processDto.getSeatId())
-                            .memberId(processDto.getMemberId())
-                            .phoneNumber(processDto.getPhoneNumber())
-                            .discountCode(processDto.getDiscountCode())
-                            .discountAmount(processDto.getDiscountAmount())
-                            .build()
-            );
+            // 예매 정보 확인
+            ReservationDto reservation = reservationService.findReservationById(reservationId);
             
-            // 2. 결제 정보 저장
+            // 권한 확인 (본인 예매만 결제 가능)
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
+                MemberDto member = memberService.findMemberByUserId(auth.getName());
+                if (reservation.getMemberId() != null && !reservation.getMemberId().equals(member.getId())) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                            "status", "FAIL",
+                            "message", "결제 권한이 없습니다."
+                    ));
+                }
+            }
+            
+            // 결제 정보 저장
             String paymentId = paymentService.savePayment(
                     PaymentSaveDto.builder()
-                            .method(processDto.getPaymentMethod())
-                            .amount(processDto.getAmount())
-                            .memberId(processDto.getMemberId())
-                            .deductedPoints(processDto.getDeductedPoints())
+                            .method(paymentDto.getPaymentMethod())
+                            .amount(paymentDto.getAmount())
+                            .memberId(reservation.getMemberId())
+                            .deductedPoints(paymentDto.getDeductedPoints())
                             .build()
             );
             
-            // 3. 가상의 은행/카드사 통신
+            // 가상의 은행/카드사 통신
             Map<String, Object> paymentResult = bankService.requestPaymentApproval(
-                    processDto.getPaymentMethod(),
-                    processDto.getAmount(),
-                    processDto.getCardOrAccountNumber()
+                    paymentDto.getPaymentMethod(),
+                    paymentDto.getAmount(),
+                    paymentDto.getCardOrAccountNumber()
             );
             
             if ("SUCCESS".equals(paymentResult.get("status"))) {
-                // 4. 결제 완료 처리
+                // 결제 완료 처리
                 paymentService.completePayment(paymentId);
                 
-                // 5. 예매 완료 처리
+                // 예매 완료 처리
                 reservationService.completeReservation(reservationId, paymentId);
                 
                 paymentResult.put("reservationId", reservationId);
                 return ResponseEntity.ok(paymentResult);
             } else {
-                // 결제 실패 시 예매 정보 취소
-                reservationService.cancelReservation(reservationId);
+                // 결제 실패 시 결제 정보 취소
                 paymentService.cancelPayment(paymentId);
                 
                 return ResponseEntity.badRequest().body(paymentResult);
@@ -561,6 +636,22 @@ public class ReservationController {
                     """
                 )
             )
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "권한 없음",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "권한 없음",
+                    value = """
+                    {
+                        "status": "FAIL",
+                        "message": "취소 권한이 없습니다."
+                    }
+                    """
+                )
+            )
         )
     })
     public ResponseEntity<Map<String, Object>> cancelReservation(
@@ -568,6 +659,23 @@ public class ReservationController {
             @PathVariable String reservationId) {
         try {
             ReservationDto reservation = reservationService.findReservationById(reservationId);
+            
+            // JWT에서 회원 정보 추출하여 권한 확인
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            
+            // 회원인 경우 본인 예매만 취소 가능
+            if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
+                MemberDto member = memberService.findMemberByUserId(auth.getName());
+                
+                // 관리자가 아니고 본인 예매가 아닌 경우 권한 없음
+                if (!auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")) &&
+                    reservation.getMemberId() != null && !reservation.getMemberId().equals(member.getId())) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                            "status", "FAIL",
+                            "message", "취소 권한이 없습니다."
+                    ));
+                }
+            }
             
             // 결제 취소 요청 (은행/카드사 통신)
             String approvalNumber = reservation.getPaymentId();
@@ -633,12 +741,45 @@ public class ReservationController {
                     """
                 )
             )
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "권한 없음",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "권한 없음",
+                    value = """
+                    {
+                        "error": "티켓 발급 권한이 없습니다."
+                    }
+                    """
+                )
+            )
         )
     })
     public ResponseEntity<Map<String, String>> issueTicket(
             @Parameter(description = "예매 ID", required = true)
             @PathVariable String reservationId) {
         try {
+            ReservationDto reservation = reservationService.findReservationById(reservationId);
+            
+            // JWT에서 회원 정보 추출하여 권한 확인
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            
+            // 회원인 경우 본인 예매만 발급 가능
+            if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
+                MemberDto member = memberService.findMemberByUserId(auth.getName());
+                
+                // 관리자가 아니고 본인 예매가 아닌 경우 권한 없음
+                if (!auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")) &&
+                    reservation.getMemberId() != null && !reservation.getMemberId().equals(member.getId())) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                            "error", "티켓 발급 권한이 없습니다."
+                    ));
+                }
+            }
+            
             String ticketUrl = reservationService.issueTicket(reservationId);
             return ResponseEntity.ok(Map.of(
                     "ticketUrl", ticketUrl,
