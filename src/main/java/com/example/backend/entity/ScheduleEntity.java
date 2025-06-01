@@ -17,7 +17,7 @@ import java.util.List;
 public class ScheduleEntity {
 
     @Id
-    @Column(name = "schedule_id", length = 8)
+    @Column(name = "schedule_id", length = 16)
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
