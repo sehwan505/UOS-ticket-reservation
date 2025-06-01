@@ -205,7 +205,7 @@ public class DataInitializer implements ApplicationRunner {
 
     private void initializeMovies() {
         List<MovieEntity> movies = List.of(
-            // 최신 블록버스터
+            // 상영 중인 영화들 (현재 상영중)
             MovieEntity.builder()
                 .title("아바타: 물의 길")
                 .genre("SF")
@@ -251,7 +251,6 @@ public class DataInitializer implements ApplicationRunner {
                 .rating(4.2)
                 .build(),
                 
-            // 애니메이션
             MovieEntity.builder()
                 .title("미니언즈: 라이즈 오브 그루")
                 .genre("AN")
@@ -267,22 +266,6 @@ public class DataInitializer implements ApplicationRunner {
                 .rating(4.0)
                 .build(),
                 
-            MovieEntity.builder()
-                .title("엔칸토: 마법의 세계")
-                .genre("AN")
-                .releaseDate("20211124")
-                .screeningStatus("D")
-                .runtime(102)
-                .actorName("스테파니 베아트리즈, 마리아 세실리아")
-                .directorName("바이런 하워드")
-                .distributorName("월트디즈니")
-                .viewingGrade("전체")
-                .description("마법의 힘을 잃어버린 소녀 미라벨의 모험을 그린 디즈니 애니메이션입니다.")
-                .image("/images/encanto.jpg")
-                .rating(4.3)
-                .build(),
-                
-            // 한국 영화
             MovieEntity.builder()
                 .title("헤어질 결심")
                 .genre("DR")
@@ -313,36 +296,95 @@ public class DataInitializer implements ApplicationRunner {
                 .rating(4.1)
                 .build(),
                 
-            // 호러/스릴러
+            // 상영 예정인 영화들 (개봉 예정)
             MovieEntity.builder()
-                .title("스크림 6")
-                .genre("HO")
-                .releaseDate("20230310")
-                .screeningStatus("D")
-                .runtime(123)
-                .actorName("멜리사 바레라, 제나 오르테가")
-                .directorName("맷 베티넬리-올핀")
-                .distributorName("파라마운트")
-                .viewingGrade("18")
-                .description("고스트페이스 킬러가 다시 돌아왔습니다. 새로운 살인 사건이 시작됩니다.")
-                .image("/images/scream6.jpg")
-                .rating(3.8)
+                .title("가디언즈 오브 갤럭시 3")
+                .genre("AC")
+                .releaseDate("20250215")
+                .screeningStatus("U")
+                .runtime(150)
+                .actorName("크리스 프랫, 조 샐다나")
+                .directorName("제임스 건")
+                .distributorName("월트디즈니")
+                .viewingGrade("12")
+                .description("가디언즈의 마지막 모험이 시작됩니다. 팀의 운명을 건 최후의 전투가 펼쳐집니다.")
+                .image("/images/gotg3.jpg")
+                .rating(0.0)
                 .build(),
                 
-            // 로맨스
             MovieEntity.builder()
-                .title("어 굿 퍼슨")
-                .genre("RO")
-                .releaseDate("20230915")
-                .screeningStatus("D")
-                .runtime(129)
-                .actorName("플로렌스 퓨, 모건 프리먼")
-                .directorName("잭 브래프")
+                .title("인디아나 존스 5")
+                .genre("AC")
+                .releaseDate("20250301")
+                .screeningStatus("U")
+                .runtime(142)
+                .actorName("해리슨 포드, 피비 월러브리지")
+                .directorName("제임스 맨골드")
+                .distributorName("월트디즈니")
+                .viewingGrade("12")
+                .description("전설적인 고고학자 인디아나 존스의 마지막 모험이 시작됩니다.")
+                .image("/images/indiana_jones5.jpg")
+                .rating(0.0)
+                .build(),
+                
+            MovieEntity.builder()
+                .title("트랜스포머: 라이즈 오브 더 비스트")
+                .genre("AC")
+                .releaseDate("20250320")
+                .screeningStatus("U")
+                .runtime(127)
+                .actorName("안소니 라모스, 도미니크 피시백")
+                .directorName("스티븐 케이플 주니어")
+                .distributorName("파라마운트")
+                .viewingGrade("12")
+                .description("새로운 트랜스포머들의 등장과 함께 펼쳐지는 액션 어드벤처입니다.")
+                .image("/images/transformers7.jpg")
+                .rating(0.0)
+                .build(),
+                
+            MovieEntity.builder()
+                .title("스파이더맨: 어크로스 더 스파이더버스")
+                .genre("AN")
+                .releaseDate("20250410")
+                .screeningStatus("U")
+                .runtime(140)
+                .actorName("샤메익 무어, 헤일리 스타인펠드")
+                .directorName("호아킴 도스 산토스")
+                .distributorName("소니픽쳐스")
+                .viewingGrade("전체")
+                .description("멀티버스를 넘나드는 스파이더맨들의 새로운 모험이 시작됩니다.")
+                .image("/images/spiderverse2.jpg")
+                .rating(0.0)
+                .build(),
+                
+            MovieEntity.builder()
+                .title("존 윅 5")
+                .genre("AC")
+                .releaseDate("20250505")
+                .screeningStatus("U")
+                .runtime(131)
+                .actorName("키아누 리브스, 로렌스 피시번")
+                .directorName("채드 스타헬스키")
                 .distributorName("라이온스게이트")
-                .viewingGrade("15")
-                .description("완벽한 삶을 살던 여성이 예상치 못한 사건으로 인해 인생이 바뀌는 이야기입니다.")
-                .image("/images/a_good_person.jpg")
-                .rating(3.9)
+                .viewingGrade("18")
+                .description("전설적인 킬러 존 윅의 마지막 복수가 시작됩니다.")
+                .image("/images/johnwick5.jpg")
+                .rating(0.0)
+                .build(),
+                
+            MovieEntity.builder()
+                .title("미션 임파서블 8")
+                .genre("AC")
+                .releaseDate("20250620")
+                .screeningStatus("U")
+                .runtime(163)
+                .actorName("톰 크루즈, 레베카 퍼거슨")
+                .directorName("크리스토퍼 맥쿼리")
+                .distributorName("파라마운트")
+                .viewingGrade("12")
+                .description("이단 헌트의 가장 위험한 미션이 시작됩니다.")
+                .image("/images/mi8.jpg")
+                .rating(0.0)
                 .build(),
                 
             // 상영 종료된 영화들
@@ -350,7 +392,7 @@ public class DataInitializer implements ApplicationRunner {
                 .title("닥터 스트레인지: 대혼돈의 멀티버스")
                 .genre("AC")
                 .releaseDate("20220504")
-                .screeningStatus("Y")
+                .screeningStatus("E")
                 .runtime(126)
                 .actorName("베네딕트 컴버배치, 엘리자베스 올슨")
                 .directorName("샘 레이미")
@@ -365,7 +407,7 @@ public class DataInitializer implements ApplicationRunner {
                 .title("쥬라기 월드: 도미니언")
                 .genre("AC")
                 .releaseDate("20220601")
-                .screeningStatus("Y")
+                .screeningStatus("E")
                 .runtime(147)
                 .actorName("크리스 프랫, 브라이스 달라스 하워드")
                 .directorName("콜린 트레보로우")
@@ -380,7 +422,7 @@ public class DataInitializer implements ApplicationRunner {
                 .title("토르: 러브 앤 썬더")
                 .genre("AC")
                 .releaseDate("20220706")
-                .screeningStatus("Y")
+                .screeningStatus("E")
                 .runtime(119)
                 .actorName("크리스 헴스워스, 나탈리 포트만")
                 .directorName("타이카 와이티티")
@@ -389,11 +431,61 @@ public class DataInitializer implements ApplicationRunner {
                 .description("토르의 새로운 모험과 사랑 이야기를 그린 마블 영화입니다.")
                 .image("/images/thor4.jpg")
                 .rating(3.6)
+                .build(),
+                
+            MovieEntity.builder()
+                .title("엔칸토: 마법의 세계")
+                .genre("AN")
+                .releaseDate("20211124")
+                .screeningStatus("E")
+                .runtime(102)
+                .actorName("스테파니 베아트리즈, 마리아 세실리아")
+                .directorName("바이런 하워드")
+                .distributorName("월트디즈니")
+                .viewingGrade("전체")
+                .description("마법의 힘을 잃어버린 소녀 미라벨의 모험을 그린 디즈니 애니메이션입니다.")
+                .image("/images/encanto.jpg")
+                .rating(4.3)
+                .build(),
+                
+            MovieEntity.builder()
+                .title("스크림 6")
+                .genre("HO")
+                .releaseDate("20230310")
+                .screeningStatus("E")
+                .runtime(123)
+                .actorName("멜리사 바레라, 제나 오르테가")
+                .directorName("맷 베티넬리-올핀")
+                .distributorName("파라마운트")
+                .viewingGrade("18")
+                .description("고스트페이스 킬러가 다시 돌아왔습니다. 새로운 살인 사건이 시작됩니다.")
+                .image("/images/scream6.jpg")
+                .rating(3.8)
+                .build(),
+                
+            MovieEntity.builder()
+                .title("어 굿 퍼슨")
+                .genre("RO")
+                .releaseDate("20230915")
+                .screeningStatus("E")
+                .runtime(129)
+                .actorName("플로렌스 퓨, 모건 프리먼")
+                .directorName("잭 브래프")
+                .distributorName("라이온스게이트")
+                .viewingGrade("15")
+                .description("완벽한 삶을 살던 여성이 예상치 못한 사건으로 인해 인생이 바뀌는 이야기입니다.")
+                .image("/images/a_good_person.jpg")
+                .rating(3.9)
                 .build()
         );
         
         movieRepository.saveAll(movies);
-        log.info("🎬 영화 데이터 생성 완료: {}편", movies.size());
+        log.info("🎬 영화 데이터 생성 완료: {}편 (상영예정: {}편, 상영중: {}편, 상영종료: {}편)", 
+            movies.size(),
+            movies.stream().mapToInt(m -> "U".equals(m.getScreeningStatus()) ? 1 : 0).sum(),
+            movies.stream().mapToInt(m -> "D".equals(m.getScreeningStatus()) ? 1 : 0).sum(),
+            movies.stream().mapToInt(m -> "E".equals(m.getScreeningStatus()) ? 1 : 0).sum()
+        );
     }
 
     private void initializeSchedules() {
@@ -468,7 +560,7 @@ public class DataInitializer implements ApplicationRunner {
                 .email("admin@cinema.com")
                 .phoneNumber("01000000000")
                 .birthDate("19800101")
-                .grade("P") // Platinum
+                .grade("A")
                 .availablePoints(100000)
                 .build());
             
