@@ -22,6 +22,9 @@ public class ScheduleDto {
 
     // 종료 시간 계산
     public LocalDateTime getScreeningEndTime() {
+        if (screeningStartTime == null || runtime == null) {
+            return null;
+        }
         return screeningStartTime.plusMinutes(runtime);
     }
 }

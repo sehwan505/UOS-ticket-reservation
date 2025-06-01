@@ -2,7 +2,9 @@ package com.example.backend.service;
 
 import com.example.backend.dto.MovieDto;
 import com.example.backend.dto.MovieSaveDto;
+import com.example.backend.dto.ScheduleDto;
 import com.example.backend.entity.MovieEntity;
+import com.example.backend.entity.ScheduleEntity;
 import com.example.backend.repository.MovieRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -127,6 +129,20 @@ public class MovieService {
                 .description(movie.getDescription())
                 .image(movie.getImage())
                 .rating(movie.getRating())
+                .build();
+    }
+
+    // ScheduleEntity를 ScheduleDto로 변환
+    private ScheduleDto convertScheduleToDto(ScheduleEntity schedule) {
+        return ScheduleDto.builder()
+                .id(schedule.getId())
+                .movieId(schedule.getMovie().getId())
+                .movieTitle(schedule.getMovie().getTitle())
+                .screenId(schedule.getScreen().getId())
+                .screenName(schedule.getScreen().getName())
+                .screeningDate(schedule.getScreeningDate())
+                .screeningStartTime(schedule.getScreeningStartTime())
+                .runtime(schedule.getMovie().getRuntime())
                 .build();
     }
 }
