@@ -678,24 +678,31 @@ public class ReservationController {
             }
             
             // 결제 취소 요청 (은행/카드사 통신)
-            String approvalNumber = reservation.getPaymentId();
-            Map<String, Object> cancelResult = bankService.requestPaymentCancellation(approvalNumber);
-            
-            if ("SUCCESS".equals(cancelResult.get("status"))) {
-                // 결제 취소 처리
-                paymentService.cancelPayment(reservation.getPaymentId());
-                
-                // 예약 취소 처리
+            if (reservation.getPaymentId() != null) {
+                String approvalNumber = reservation.getPaymentId();
+                Map<String, Object> cancelResult = bankService.requestPaymentCancellation(approvalNumber);
+                    
+                if ("SUCCESS".equals(cancelResult.get("status"))) {
+                    // 결제 취소 처리
+                    paymentService.cancelPayment(reservation.getPaymentId());
+                    
+                    // 예약 취소 처리
+                    reservationService.cancelReservation(reservationId);
+                    
+                    return ResponseEntity.ok(Map.of(
+                            "status", "SUCCESS",
+                            "message", "예매가 취소되었습니다."
+                    ));
+                } else {
+                    return ResponseEntity.badRequest().body(cancelResult);
+                }
+            } else {
                 reservationService.cancelReservation(reservationId);
-                
                 return ResponseEntity.ok(Map.of(
                         "status", "SUCCESS",
                         "message", "예매가 취소되었습니다."
-                ));
-            } else {
-                return ResponseEntity.badRequest().body(cancelResult);
+                    ));
             }
-            
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of(
                     "status", "FAIL",
