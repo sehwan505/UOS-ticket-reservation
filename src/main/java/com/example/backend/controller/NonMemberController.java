@@ -2,6 +2,7 @@ package com.example.backend.controller;
 
 import com.example.backend.entity.NonMemberEntity;
 import com.example.backend.service.NonMemberService;
+import com.example.backend.dto.NonMemberDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -35,12 +36,12 @@ public class NonMemberController {
             description = "비회원 목록 조회 성공",
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = NonMemberEntity.class)
+                schema = @Schema(implementation = NonMemberDto.class)
             )
         )
     })
-    public ResponseEntity<List<NonMemberEntity>> getAllNonMembers() {
-        List<NonMemberEntity> allNonMembers = nonMemberService.findAllNonMembers();
+    public ResponseEntity<List<NonMemberDto>> getAllNonMembers() {
+        List<NonMemberDto> allNonMembers = nonMemberService.findAllNonMembers();
         return ResponseEntity.ok(allNonMembers);
     }
 }

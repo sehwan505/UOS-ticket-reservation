@@ -66,7 +66,8 @@ public class SecurityConfig {
                 // 인증 없이 접근 가능한 API
                 .requestMatchers("/api/movies/**", "/api/movies").permitAll() // 영화 정보 조회
                 .requestMatchers("/api/reviews/movies/**").permitAll() // 영화별 리뷰 조회
-                .requestMatchers("/api/reservations/movies/**").permitAll() // 영화별 상영일정 조회
+                .requestMatchers("/api/reservations/**").permitAll() // 영화관 정보 조회
+                .requestMatchers("/api/cinemas/**").permitAll() 
                 .requestMatchers("/api/reservations/schedules/**").permitAll() // 상영 스케줄 및 좌석 정보
                 .requestMatchers("/api/bank/payment/approve").permitAll() // 결제 승인
                 .requestMatchers("/api/bank/payment/cancel").permitAll() // 결제 취소

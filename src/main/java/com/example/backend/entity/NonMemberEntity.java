@@ -16,7 +16,7 @@ import java.util.List;
 public class NonMemberEntity extends BaseTimeEntity{
 
     @Id
-    @Column(columnDefinition = "CHAR(11)")
+    @Column(name = "phone_number", columnDefinition = "CHAR(11)")
     private String phoneNumber;
 
     @OneToMany(mappedBy = "nonMember", cascade = CascadeType.ALL)

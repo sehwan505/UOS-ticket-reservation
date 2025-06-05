@@ -332,6 +332,9 @@ public class ReservationController {
             if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
                 MemberDto member = memberService.findMemberByUserId(auth.getName());
                 memberId = member.getId();
+                System.out.println("DEBUG: Found member with ID = " + memberId);
+            } else {
+                System.out.println("DEBUG: No authenticated member found");
             }
             
             // 예매 정보 저장

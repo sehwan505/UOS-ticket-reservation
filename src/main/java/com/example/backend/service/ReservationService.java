@@ -111,10 +111,13 @@ public class ReservationService {
             NonMemberEntity nonMember = nonMemberRepository.findById(reservationSaveDto.getPhoneNumber())
                     .orElseGet(() -> {
                         // 비회원이 없으면 새로 생성
+                        System.out.println("DEBUG: Creating new NonMemberEntity with phoneNumber = " + reservationSaveDto.getPhoneNumber());
                         NonMemberEntity newNonMember = NonMemberEntity.builder()
                                 .phoneNumber(reservationSaveDto.getPhoneNumber())
                                 .build();
-                        return nonMemberRepository.save(newNonMember);
+                        NonMemberEntity savedNonMember = nonMemberRepository.save(newNonMember);
+                        System.out.println("DEBUG: Saved NonMemberEntity with phoneNumber = " + savedNonMember.getPhoneNumber());
+                        return savedNonMember;
                     });
             reservation.setNonMember(nonMember);
         } else {
@@ -122,6 +125,9 @@ public class ReservationService {
         }
 
         ReservationEntity savedReservation = reservationRepository.save(reservation);
+        if (savedReservation.getNonMember() != null) {
+            System.out.println("DEBUG: Saved reservation has nonMember with phoneNumber = " + savedReservation.getNonMember().getPhoneNumber());
+        }
         return savedReservation.getId();
     }
 
@@ -204,7 +210,10 @@ public class ReservationService {
 
         // 비회원 정보 설정
         if (reservation.getNonMember() != null) {
+            System.out.println("DEBUG: Converting to DTO - nonMember phoneNumber = " + reservation.getNonMember().getPhoneNumber());
             dto.setPhoneNumber(reservation.getNonMember().getPhoneNumber());
+        } else {
+            System.out.println("DEBUG: Converting to DTO - nonMember is null");
         }
 
         // 결제 정보 설정
