@@ -26,7 +26,7 @@ public class ReservationDto {
     private String paymentId;
     private String paymentStatus;
     private String ticketIssuanceStatus;
-    private Long memberId;
+    private String memberUserId;
     private String userName;
     private String phoneNumber;
     private String screeningDate;

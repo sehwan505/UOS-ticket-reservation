@@ -21,10 +21,6 @@ import java.util.List;
 public class MemberEntity extends BaseTimeEntity implements UserDetails {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "member_id")
-    private Long id;
-
     @Column(name = "user_id", length = 20, unique = true)
     private String userId;
 

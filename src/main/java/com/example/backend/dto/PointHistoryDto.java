@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Builder
 public class PointHistoryDto {
     private Long id;
-    private Long memberId;
+    private String memberUserId;
     private Integer amount;
     private String type;
     private LocalDateTime pointTime;

@@ -45,11 +45,12 @@ public class ReviewService {
     }
     
     // 회원별 리뷰 조회
-    public List<ReviewDto> findReviewsByMember(Long memberId) {
-        MemberEntity member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + memberId));
+    public List<ReviewDto> findReviewsByMember(String userId) {
+        MemberEntity member = memberRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + userId));
         
-        return reviewRepository.findByMember(member).stream()
+        List<ReviewEntity> reviews = reviewRepository.findByMember(member);
+        return reviews.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
@@ -68,8 +69,8 @@ public class ReviewService {
         MovieEntity movie = movieRepository.findById(reviewSaveDto.getMovieId())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 영화입니다. ID: " + reviewSaveDto.getMovieId()));
         
-        MemberEntity member = memberRepository.findById(reviewSaveDto.getMemberId())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + reviewSaveDto.getMemberId()));
+        MemberEntity member = memberRepository.findById(reviewSaveDto.getMemberUserId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + reviewSaveDto.getMemberUserId()));
         
         // 이미 해당 영화에 리뷰를 작성했는지 확인
         Optional<ReviewEntity> existingReview = reviewRepository.findByMemberAndMovie(member, movie);
@@ -145,7 +146,6 @@ public class ReviewService {
                 .id(review.getId())
                 .movieId(review.getMovie().getId())
                 .movieTitle(review.getMovie().getTitle())
-                .memberId(review.getMember().getId())
                 .memberUserId(review.getMember().getUserId())
                 .ratingValue(review.getRatingValue())
                 .content(review.getContent())

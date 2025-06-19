@@ -41,9 +41,9 @@ public class ReservationService {
     }
     
     // 회원별 예매 조회
-    public List<ReservationDto> findReservationsByMember(Long memberId) {
-        MemberEntity member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + memberId));
+    public List<ReservationDto> findReservationsByMember(String userId) {
+        MemberEntity member = memberRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + userId));
         
         return reservationRepository.findByMember(member).stream()
                 .map(this::convertToDto)
@@ -103,9 +103,9 @@ public class ReservationService {
         }
         
         // 회원 또는 비회원 정보 설정
-        if (reservationSaveDto.getMemberId() != null) {
-            MemberEntity member = memberRepository.findById(reservationSaveDto.getMemberId())
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + reservationSaveDto.getMemberId()));
+        if (reservationSaveDto.getMemberUserId() != null) {
+            MemberEntity member = memberRepository.findById(reservationSaveDto.getMemberUserId())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + reservationSaveDto.getMemberUserId()));
                     reservation.setMember(member);
         } else if (reservationSaveDto.getPhoneNumber() != null) {
             NonMemberEntity nonMember = nonMemberRepository.findById(reservationSaveDto.getPhoneNumber())
@@ -204,7 +204,7 @@ public class ReservationService {
 
         // 회원 정보 설정
         if (reservation.getMember() != null) {
-            dto.setMemberId(reservation.getMember().getId());
+            dto.setMemberUserId(reservation.getMember().getUserId());
             dto.setUserName(reservation.getMember().getUserId());
         }
 

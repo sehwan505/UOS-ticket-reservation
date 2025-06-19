@@ -256,10 +256,10 @@ public class MemberController {
         }
         
         // 회원가입 처리
-        Long memberId = memberService.saveMember(memberSaveDto);
+        String userId = memberService.saveMember(memberSaveDto);
         
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                "id", memberId,
+                "id", userId,
                 "message", "회원가입이 완료되었습니다."
         ));
     }
@@ -333,7 +333,7 @@ public class MemberController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         MemberDto member = memberService.findMemberByUserId(auth.getName());
         
-        memberService.updateMember(member.getId(), memberSaveDto);
+        memberService.updateMember(member.getUserId(), memberSaveDto);
         
         return ResponseEntity.ok(Map.of("message", "회원정보가 수정되었습니다."));
     }
@@ -389,7 +389,7 @@ public class MemberController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         MemberDto member = memberService.findMemberByUserId(auth.getName());
         
-        Page<PointHistoryDto> pointHistory = pointHistoryService.findPointHistoryByMember(member.getId(), pageable);
+        Page<PointHistoryDto> pointHistory = pointHistoryService.findPointHistoryByMember(member.getUserId(), pageable);
         
         Map<String, Object> response = new HashMap<>();
         response.put("member", member);
@@ -490,13 +490,15 @@ public class MemberController {
     })
     public ResponseEntity<Map<String, Object>> getMemberDetail(
             @Parameter(description = "회원 ID", required = true)
-            @PathVariable Long id) {
-        MemberDto member = memberService.findMemberById(id);
-        List<ReservationDto> reservations = reservationService.findReservationsByMember(id);
+            @PathVariable String userId) {
         
-        Map<String, Object> response = new HashMap<>();
-        response.put("member", member);
-        response.put("reservations", reservations);
+        MemberDto member = memberService.findMemberById(userId);
+        List<ReservationDto> reservations = reservationService.findReservationsByMember(userId);
+        
+        Map<String, Object> response = Map.of(
+                "member", member,
+                "reservations", reservations
+        );
         
         return ResponseEntity.ok(response);
     }

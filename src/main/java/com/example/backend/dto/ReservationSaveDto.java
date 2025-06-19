@@ -10,7 +10,7 @@ import lombok.*;
 public class ReservationSaveDto {
     private String scheduleId;
     private Integer seatId;
-    private Long memberId;
+    private String memberUserId;
     private String phoneNumber;
     private String discountCode;
     private Integer discountAmount;

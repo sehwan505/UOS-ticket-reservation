@@ -24,7 +24,7 @@ public class ReviewEntity extends BaseTimeEntity {
     private MovieEntity movie;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id")
+    @JoinColumn(name = "user_id")
     private MemberEntity member;
 
     @Column(name = "rating_value")

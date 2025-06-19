@@ -24,19 +24,19 @@ public class PointHistoryService {
     private final MemberRepository memberRepository;
 
     // 회원별 포인트 내역 조회 (페이징)
-    public Page<PointHistoryDto> findPointHistoryByMember(Long memberId, Pageable pageable) {
-        MemberEntity member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + memberId));
+    public Page<PointHistoryDto> findPointHistoryByMember(String userId, Pageable pageable) {
+        MemberEntity member = memberRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + userId));
 
-        return pointHistoryRepository.findByMember(member, pageable)
-                .map(this::convertToDto);
+        Page<PointHistoryEntity> pointHistoryPage = pointHistoryRepository.findByMember(member, pageable);
+        return pointHistoryPage.map(this::convertToDto);
     }
 
     // 포인트 적립 내역 생성
     @Transactional
-    public Long addPointHistory(Long memberId, Integer amount, String type) {
-        MemberEntity member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + memberId));
+    public Long addPointHistory(String userId, Integer amount, String type) {
+        MemberEntity member = memberRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + userId));
 
         // 포인트 내역 생성
         PointHistoryEntity pointHistory = PointHistoryEntity.builder()
@@ -75,42 +75,41 @@ public class PointHistoryService {
 
     // 예매 완료 후 포인트 적립
     @Transactional
-    public Long addPointsForReservation(Long memberId, Integer reservationAmount) {
-        // 결제 금액의 약 10%를 포인트로 적립 (소수점 버림)
-        int pointsToAdd = (int) (reservationAmount * 0.1);
-
-        if (pointsToAdd > 0) {
-            return addPointHistory(memberId, pointsToAdd, "A");
-        }
-
-        return null;
+    public Long addPointsForReservation(String userId, Integer reservationAmount) {
+        // 예매 금액의 5% 포인트 적립
+        Integer pointsToAdd = (int) Math.round(reservationAmount * 0.05);
+        
+        // 최소 10포인트, 최대 1000포인트 적립
+        pointsToAdd = Math.max(10, Math.min(1000, pointsToAdd));
+        
+        return addPointHistory(userId, pointsToAdd, "A");
     }
 
     // 회원 포인트 사용 처리
     @Transactional
-    public Long usePoints(Long memberId, Integer pointsToUse) {
+    public Long usePoints(String userId, Integer pointsToUse) {
         if (pointsToUse <= 0) {
-            throw new IllegalArgumentException("사용할 포인트는 1점 이상이어야 합니다.");
+            throw new IllegalArgumentException("사용할 포인트는 0보다 커야 합니다.");
         }
-
-        return addPointHistory(memberId, pointsToUse, "U");
+        
+        return addPointHistory(userId, pointsToUse, "U");
     }
 
     // 회원 포인트 적립 처리
     @Transactional
-    public Long addPoints(Long memberId, Integer pointsToAdd) {
+    public Long addPoints(String userId, Integer pointsToAdd) {
         if (pointsToAdd <= 0) {
-            throw new IllegalArgumentException("적립할 포인트는 1점 이상이어야 합니다.");
+            throw new IllegalArgumentException("적립할 포인트는 0보다 커야 합니다.");
         }
-
-        return addPointHistory(memberId, pointsToAdd, "A");
+        
+        return addPointHistory(userId, pointsToAdd, "A");
     }
 
     // Entity를 DTO로 변환
     private PointHistoryDto convertToDto(PointHistoryEntity pointHistory) {
         return PointHistoryDto.builder()
                 .id(pointHistory.getId())
-                .memberId(pointHistory.getMember().getId())
+                .memberUserId(pointHistory.getMember().getUserId())
                 .amount(pointHistory.getAmount())
                 .type(pointHistory.getType())
                 .pointTime(pointHistory.getPointTime())

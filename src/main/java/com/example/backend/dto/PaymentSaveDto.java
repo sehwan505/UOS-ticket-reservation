@@ -10,6 +10,6 @@ import lombok.*;
 public class PaymentSaveDto {
     private String method;
     private Integer amount;
-    private Long memberId;
+    private String memberUserId;
     private Integer deductedPoints;
 }

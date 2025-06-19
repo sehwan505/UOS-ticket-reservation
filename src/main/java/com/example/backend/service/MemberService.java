@@ -26,12 +26,12 @@ public class MemberService implements UserDetailsService {
     // 회원 상세 조회 (Spring Security용)
     @Override
     public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
-        return memberRepository.findByUserId(userId)
+        return memberRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + userId));
     }
 
     public MemberDto findMemberByUserId(String userId) {
-        MemberEntity member = memberRepository.findByUserId(userId)
+        MemberEntity member = memberRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("해당 ID를 가진 사용자가 존재하지 않습니다."));
         return convertToDto(member);
     }
@@ -44,15 +44,15 @@ public class MemberService implements UserDetailsService {
     }
     
     // 회원 상세 조회
-    public MemberDto findMemberById(Long id) {
-        MemberEntity member = memberRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + id));
+    public MemberDto findMemberById(String userId) {
+        MemberEntity member = memberRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + userId));
         return convertToDto(member);
     }
     
     // 회원 등록
     @Transactional
-    public Long saveMember(MemberSaveDto memberSaveDto) {
+    public String saveMember(MemberSaveDto memberSaveDto) {
         // 아이디 중복 체크
         if (memberRepository.existsByUserId(memberSaveDto.getUserId())) {
             throw new IllegalArgumentException("이미 사용 중인 아이디입니다.");
@@ -77,14 +77,14 @@ public class MemberService implements UserDetailsService {
                 .build();
         
         MemberEntity savedMember = memberRepository.save(member);
-        return savedMember.getId();
+        return savedMember.getUserId();
     }
     
     // 회원 수정
     @Transactional
-    public Long updateMember(Long id, MemberSaveDto memberSaveDto) {
-        MemberEntity member = memberRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + id));
+    public String updateMember(String userId, MemberSaveDto memberSaveDto) {
+        MemberEntity member = memberRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + userId));
         
         // 기본 정보 업데이트
         member.setEmail(memberSaveDto.getEmail());
@@ -95,23 +95,23 @@ public class MemberService implements UserDetailsService {
             member.setPassword(passwordEncoder.encode(memberSaveDto.getPassword()));
         }
         
-        return member.getId();
+        return member.getUserId();
     }
     
     // 회원 삭제
     @Transactional
-    public void deleteMember(Long id) {
-        MemberEntity member = memberRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + id));
+    public void deleteMember(String userId) {
+        MemberEntity member = memberRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + userId));
         
         memberRepository.delete(member);
     }
     
     // 포인트 추가
     @Transactional
-    public Integer addPoints(Long memberId, int points) {
-        MemberEntity member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + memberId));
+    public Integer addPoints(String userId, int points) {
+        MemberEntity member = memberRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + userId));
         
         member.setAvailablePoints(member.getAvailablePoints() + points);
         
@@ -120,9 +120,9 @@ public class MemberService implements UserDetailsService {
     
     // 포인트 사용
     @Transactional
-    public Integer usePoints(Long memberId, int points) {
-        MemberEntity member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + memberId));
+    public Integer usePoints(String userId, int points) {
+        MemberEntity member = memberRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + userId));
         
         if (member.getAvailablePoints() < points) {
             throw new IllegalArgumentException("사용 가능한 포인트가 부족합니다.");
@@ -148,7 +148,6 @@ public class MemberService implements UserDetailsService {
     // Entity를 DTO로 변환
     private MemberDto convertToDto(MemberEntity member) {
         return MemberDto.builder()
-                .id(member.getId())
                 .userId(member.getUserId())
                 .email(member.getEmail())
                 .phoneNumber(member.getPhoneNumber())

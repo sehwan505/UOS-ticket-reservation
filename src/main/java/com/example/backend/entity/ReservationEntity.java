@@ -53,7 +53,7 @@ public class ReservationEntity extends BaseTimeEntity {
     private PaymentEntity payment;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id")
+    @JoinColumn(name = "user_id")
     private MemberEntity member;
 
     @ManyToOne(fetch = FetchType.LAZY)

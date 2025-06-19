@@ -161,7 +161,7 @@ public class ReviewController {
         
         try {
             reviewSaveDto.setMovieId(movieId);
-            reviewSaveDto.setMemberId(member.getId());
+            reviewSaveDto.setMemberUserId(member.getUserId());
             
             Long reviewId = reviewService.saveReview(reviewSaveDto);
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
@@ -213,7 +213,7 @@ public class ReviewController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         MemberDto member = memberService.findMemberByUserId(auth.getName());
         
-        List<ReviewDto> reviews = reviewService.findReviewsByMember(member.getId());
+        List<ReviewDto> reviews = reviewService.findReviewsByMember(member.getUserId());
         return ResponseEntity.ok(reviews);
     }
 
@@ -306,7 +306,7 @@ public class ReviewController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         MemberDto member = memberService.findMemberByUserId(auth.getName());
         
-        if (!review.getMemberId().equals(member.getId()) && !auth.getAuthorities().stream()
+        if (!review.getMemberUserId().equals(member.getUserId()) && !auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
                     "error", "permission",
@@ -315,7 +315,7 @@ public class ReviewController {
         }
         
         reviewSaveDto.setMovieId(review.getMovieId());
-        reviewSaveDto.setMemberId(member.getId());
+        reviewSaveDto.setMemberUserId(member.getUserId());
         
         reviewService.updateReview(reviewId, reviewSaveDto);
         return ResponseEntity.ok(Map.of("message", "리뷰가 수정되었습니다."));
@@ -370,7 +370,7 @@ public class ReviewController {
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             MemberDto member = memberService.findMemberByUserId(auth.getName());
             
-            if (!review.getMemberId().equals(member.getId()) && !auth.getAuthorities().stream()
+            if (!review.getMemberUserId().equals(member.getUserId()) && !auth.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "삭제 권한이 없습니다."));
             }

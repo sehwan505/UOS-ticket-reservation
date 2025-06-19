@@ -327,12 +327,12 @@ public class ReservationController {
         try {
             // JWT에서 회원 정보 추출 (로그인한 경우)
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            Long memberId = null;
+            String userId = null;
             
             if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
                 MemberDto member = memberService.findMemberByUserId(auth.getName());
-                memberId = member.getId();
-                System.out.println("DEBUG: Found member with ID = " + memberId);
+                userId = member.getUserId();
+                System.out.println("DEBUG: Found member with ID = " + userId);
             } else {
                 System.out.println("DEBUG: No authenticated member found");
             }
@@ -342,7 +342,7 @@ public class ReservationController {
                     ReservationSaveDto.builder()
                             .scheduleId(createDto.getScheduleId())
                             .seatId(createDto.getSeatId())
-                            .memberId(memberId)
+                            .memberUserId(userId)
                             .phoneNumber(createDto.getPhoneNumber())
                             .discountCode(createDto.getDiscountCode())
                             .discountAmount(createDto.getDiscountAmount())
@@ -431,16 +431,20 @@ public class ReservationController {
             // 예매 정보 확인
             ReservationDto reservation = reservationService.findReservationById(reservationId);
             
-            // 권한 확인 (본인 예매만 결제 가능)
+            // JWT에서 로그인한 회원 정보 가져오기
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            MemberDto member = null;
+            
             if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
-                MemberDto member = memberService.findMemberByUserId(auth.getName());
-                if (reservation.getMemberId() != null && !reservation.getMemberId().equals(member.getId())) {
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
-                            "status", "FAIL",
-                            "message", "결제 권한이 없습니다."
-                    ));
-                }
+                member = memberService.findMemberByUserId(auth.getName());
+            }
+            
+            // 권한 확인 (본인 예매만 결제 가능)
+            if (reservation.getMemberUserId() != null && !reservation.getMemberUserId().equals(member.getUserId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                        "status", "FAIL",
+                        "message", "결제 권한이 없습니다."
+                ));
             }
             
             // 결제 정보 저장
@@ -448,7 +452,7 @@ public class ReservationController {
                     PaymentSaveDto.builder()
                             .method(paymentDto.getPaymentMethod())
                             .amount(paymentDto.getAmount())
-                            .memberId(reservation.getMemberId())
+                            .memberUserId(reservation.getMemberUserId())
                             .deductedPoints(paymentDto.getDeductedPoints())
                             .build()
             );
@@ -528,7 +532,7 @@ public class ReservationController {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         MemberDto member = memberService.findMemberByUserId(auth.getName());
         
-        List<ReservationDto> reservations = reservationService.findReservationsByMember(member.getId());
+        List<ReservationDto> reservations = reservationService.findReservationsByMember(member.getUserId());
         return ResponseEntity.ok(reservations);
     }
 
@@ -663,21 +667,20 @@ public class ReservationController {
         try {
             ReservationDto reservation = reservationService.findReservationById(reservationId);
             
-            // JWT에서 회원 정보 추출하여 권한 확인
+            // JWT에서 로그인한 회원 정보 가져오기
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            MemberDto member = null;
             
-            // 회원인 경우 본인 예매만 취소 가능
             if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
-                MemberDto member = memberService.findMemberByUserId(auth.getName());
-                
-                // 관리자가 아니고 본인 예매가 아닌 경우 권한 없음
-                if (!auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")) &&
-                    reservation.getMemberId() != null && !reservation.getMemberId().equals(member.getId())) {
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
-                            "status", "FAIL",
-                            "message", "취소 권한이 없습니다."
-                    ));
-                }
+                member = memberService.findMemberByUserId(auth.getName());
+            }
+            
+            // 권한 확인 (본인 예매만 취소 가능)
+            if (reservation.getMemberUserId() != null && !reservation.getMemberUserId().equals(member.getUserId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                        "status", "FAIL",
+                        "message", "취소 권한이 없습니다."
+                ));
             }
             
             // 결제 취소 요청 (은행/카드사 통신)
@@ -774,20 +777,19 @@ public class ReservationController {
         try {
             ReservationDto reservation = reservationService.findReservationById(reservationId);
             
-            // JWT에서 회원 정보 추출하여 권한 확인
+            // JWT에서 로그인한 회원 정보 가져오기
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            MemberDto member = null;
             
-            // 회원인 경우 본인 예매만 발급 가능
             if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
-                MemberDto member = memberService.findMemberByUserId(auth.getName());
-                
-                // 관리자가 아니고 본인 예매가 아닌 경우 권한 없음
-                if (!auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")) &&
-                    reservation.getMemberId() != null && !reservation.getMemberId().equals(member.getId())) {
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
-                            "error", "티켓 발급 권한이 없습니다."
-                    ));
-                }
+                member = memberService.findMemberByUserId(auth.getName());
+            }
+            
+            // 권한 확인 (본인 예매만 발급 가능)
+            if (reservation.getMemberUserId() != null && !reservation.getMemberUserId().equals(member.getUserId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                        "error", "티켓 발급 권한이 없습니다."
+                ));
             }
             
             String ticketUrl = reservationService.issueTicket(reservationId);

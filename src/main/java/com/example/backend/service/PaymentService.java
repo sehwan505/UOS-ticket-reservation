@@ -66,9 +66,9 @@ public class PaymentService {
                 .build();
         
         // 포인트 차감 처리
-        if (paymentSaveDto.getMemberId() != null && paymentSaveDto.getDeductedPoints() > 0) {
-            MemberEntity member = memberRepository.findById(paymentSaveDto.getMemberId())
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + paymentSaveDto.getMemberId()));
+        if (paymentSaveDto.getMemberUserId() != null && paymentSaveDto.getDeductedPoints() > 0) {
+            MemberEntity member = memberRepository.findById(paymentSaveDto.getMemberUserId())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + paymentSaveDto.getMemberUserId()));
             
             // 포인트 부족 체크
             if (member.getAvailablePoints() < paymentSaveDto.getDeductedPoints()) {
