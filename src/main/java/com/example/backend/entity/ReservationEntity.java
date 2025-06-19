@@ -6,7 +6,18 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "reservation")
+@Table(name = "reservation", 
+       uniqueConstraints = {
+           @UniqueConstraint(
+               name = "uk_schedule_seat_active",
+               columnNames = {"schedule_id", "seat_id"}
+           )
+       },
+       indexes = {
+           @Index(name = "idx_schedule_seat", columnList = "schedule_id, seat_id"),
+           @Index(name = "idx_reservation_status", columnList = "reservation_status"),
+           @Index(name = "idx_reservation_time", columnList = "reservation_time")
+       })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -19,21 +30,21 @@ public class ReservationEntity extends BaseTimeEntity {
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "schedule_id")
+    @JoinColumn(name = "schedule_id", nullable = false)
     private ScheduleEntity schedule;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "seat_id")
+    @JoinColumn(name = "seat_id", nullable = false)
     private SeatEntity seat;
 
-    @Column(name = "reservation_status", length = 1)
+    @Column(name = "reservation_status", length = 1, nullable = false)
     private String status; // N: 예매미완료, D: 예매취소중, Y: 예매완료
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seat_grade_id")
     private SeatGradeEntity seatGrade;
 
-    @Column(name = "reservation_time")
+    @Column(name = "reservation_time", nullable = false)
     private LocalDateTime reservationTime;
 
     @Column(name = "base_price")
@@ -60,7 +71,7 @@ public class ReservationEntity extends BaseTimeEntity {
     @JoinColumn(name = "phone_number")
     private NonMemberEntity nonMember;
 
-    @Column(name = "ticket_issuance_status", length = 1)
+    @Column(name = "ticket_issuance_status", length = 1, nullable = false)
     private String ticketIssuanceStatus; // N: 미발권, Y: 발권
 
     // 예약자가 회원인지 확인

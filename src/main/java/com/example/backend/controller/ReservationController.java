@@ -19,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -476,7 +477,6 @@ public class ReservationController {
             } else {
                 // 결제 실패 시 결제 정보 취소
                 paymentService.cancelPayment(paymentId);
-                
                 return ResponseEntity.badRequest().body(paymentResult);
             }
             
@@ -802,5 +802,43 @@ public class ReservationController {
                     "error", e.getMessage()
             ));
         }
+    }
+
+    // 관리자용: 미결제 예약 현황 조회
+    @GetMapping("/admin/unpaid")
+    @Operation(
+        summary = "미결제 예약 현황 조회 (관리자용)",
+        description = "현재 결제가 완료되지 않은 예약 목록을 조회합니다."
+    )
+    public ResponseEntity<Map<String, Object>> getUnpaidReservations() {
+        List<ReservationDto> unpaidReservations = reservationService.findUnpaidReservations();
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("totalCount", unpaidReservations.size());
+        response.put("reservations", unpaidReservations);
+        response.put("checkTime", LocalDateTime.now());
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    // 관리자용: 수동으로 만료된 예약 취소
+    @PostMapping("/admin/cancel-expired")
+    @Operation(
+        summary = "만료된 예약 수동 취소 (관리자용)",
+        description = "지정한 시간(분) 이전의 미결제 예약을 수동으로 취소합니다."
+    )
+    public ResponseEntity<Map<String, Object>> manualCancelExpiredReservations(
+            @Parameter(description = "취소할 예약의 기준 시간 (분)", required = true)
+            @RequestParam(defaultValue = "30") int timeoutMinutes) {
+        
+        List<String> canceledIds = reservationService.cancelExpiredReservations(timeoutMinutes);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("canceledCount", canceledIds.size());
+        response.put("canceledReservationIds", canceledIds);
+        response.put("timeoutMinutes", timeoutMinutes);
+        response.put("processTime", LocalDateTime.now());
+        
+        return ResponseEntity.ok(response);
     }
 }

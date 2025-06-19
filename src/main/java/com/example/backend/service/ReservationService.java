@@ -5,16 +5,23 @@ import com.example.backend.dto.ReservationSaveDto;
 import com.example.backend.entity.*;
 import com.example.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.dao.DataIntegrityViolationException;
 
+import jakarta.persistence.PessimisticLockException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class ReservationService {
     
     private final ReservationRepository reservationRepository;
@@ -65,70 +72,77 @@ public class ReservationService {
         return reservationRepository.findReservedSeatIdsByScheduleId(scheduleId);
     }
     
-    // 예매 등록
-    @Transactional
+    // 예매 등록 (중복 체크 로직 추가)
+    @Transactional(isolation = Isolation.READ_COMMITTED, timeout = 30)
     public String saveReservation(ReservationSaveDto reservationSaveDto) {
-        // 필요한 엔티티 조회
-        ScheduleEntity schedule = scheduleRepository.findById(reservationSaveDto.getScheduleId())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상영일정입니다. ID: " + reservationSaveDto.getScheduleId()));
+        log.info("예약 생성 시작: 스케줄={}, 좌석={}", reservationSaveDto.getScheduleId(), reservationSaveDto.getSeatId());
         
-        SeatEntity seat = seatRepository.findById(reservationSaveDto.getSeatId())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 좌석입니다. ID: " + reservationSaveDto.getSeatId()));
-        
-        SeatGradeEntity seatGrade = seat.getSeatGrade();
-        
-        // 예매 ID 생성: 상영시간표번호 + 좌석번호 + 일일좌석예매횟수
-        int dailyReservationCount = reservationRepository.countCompletedReservationsByScheduleId(schedule.getId()) + 1;
-        String reservationId = schedule.getId() + seat.getId() + String.format("%02d", dailyReservationCount);
-        
-        // 예매 기본 정보 설정
-        ReservationEntity reservation = ReservationEntity.builder()
-                .id(reservationId)
-                .schedule(schedule)
-                .seat(seat)
-                .seatGrade(seatGrade)
-                .status("N") // 예매미완료 상태로 시작
-                .reservationTime(LocalDateTime.now())
-                .basePrice(seatGrade.getPrice())
-                .discountAmount(0)
-                .ticketIssuanceStatus("N") // 미발권 상태로 시작
-                .build();
-        
-        // 할인 코드가 있으면 적용
-        if (reservationSaveDto.getDiscountCode() != null) {
-            reservation.applyDiscount(reservationSaveDto.getDiscountCode(), reservationSaveDto.getDiscountAmount());
-        } else {
-            // 할인 없는 경우 기본가격을 최종가격으로 설정
-            reservation.setFinalPrice(seatGrade.getPrice());
+        try {
+            // 1. 기본 엔티티 조회
+            ScheduleEntity schedule = scheduleRepository.findById(reservationSaveDto.getScheduleId())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상영일정입니다. ID: " + reservationSaveDto.getScheduleId()));
+            
+            SeatEntity seat = seatRepository.findById(reservationSaveDto.getSeatId())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 좌석입니다. ID: " + reservationSaveDto.getSeatId()));
+            
+            // 2. 배타적 락을 사용한 중복 체크
+            Optional<ReservationEntity> existingReservation = reservationRepository
+                    .findActiveReservationByScheduleAndSeatWithLock(
+                        reservationSaveDto.getScheduleId(), 
+                        reservationSaveDto.getSeatId()
+                    );
+            
+            if (existingReservation.isPresent()) {
+                log.warn("중복 예약 시도: 스케줄={}, 좌석={}", reservationSaveDto.getScheduleId(), reservationSaveDto.getSeatId());
+                throw new IllegalStateException("이미 예약된 좌석입니다. 다른 좌석을 선택해주세요.");
+            }
+            
+            // 3. 예매 생성
+            SeatGradeEntity seatGrade = seat.getSeatGrade();
+            
+            // 예매 ID 생성
+            int dailyReservationCount = reservationRepository.countCompletedReservationsByScheduleId(schedule.getId()) + 1;
+            String reservationId = schedule.getId() + seat.getId() + String.format("%02d", dailyReservationCount);
+            
+            // 예매 엔티티 생성
+            ReservationEntity reservation = ReservationEntity.builder()
+                    .id(reservationId)
+                    .schedule(schedule)
+                    .seat(seat)
+                    .seatGrade(seatGrade)
+                    .status("N") // 예매미완료 상태
+                    .reservationTime(LocalDateTime.now())
+                    .basePrice(seatGrade.getPrice())
+                    .discountAmount(0)
+                    .ticketIssuanceStatus("N")
+                    .build();
+            
+            // 할인 적용
+            if (reservationSaveDto.getDiscountCode() != null) {
+                reservation.applyDiscount(reservationSaveDto.getDiscountCode(), reservationSaveDto.getDiscountAmount());
+            } else {
+                reservation.setFinalPrice(seatGrade.getPrice());
+            }
+            
+            // 회원/비회원 정보 설정
+            setReservationUser(reservation, reservationSaveDto);
+            
+            // 저장
+            ReservationEntity savedReservation = reservationRepository.save(reservation);
+            log.info("예약 생성 완료: {}", savedReservation.getId());
+            
+            return savedReservation.getId();
+            
+        } catch (PessimisticLockException e) {
+            log.error("락 획득 실패: 스케줄={}, 좌석={}", reservationSaveDto.getScheduleId(), reservationSaveDto.getSeatId());
+            throw new IllegalStateException("다른 사용자가 같은 좌석을 선택 중입니다. 잠시 후 다시 시도해주세요.", e);
+        } catch (DataIntegrityViolationException e) {
+            log.error("데이터 무결성 위반: 스케줄={}, 좌석={}", reservationSaveDto.getScheduleId(), reservationSaveDto.getSeatId());
+            throw new IllegalStateException("좌석 예약 중 충돌이 발생했습니다. 다시 시도해주세요.", e);
+        } catch (Exception e) {
+            log.error("예약 생성 중 오류: {}", e.getMessage(), e);
+            throw new RuntimeException("예약 처리 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
-        
-        // 회원 또는 비회원 정보 설정
-        if (reservationSaveDto.getMemberUserId() != null) {
-            MemberEntity member = memberRepository.findById(reservationSaveDto.getMemberUserId())
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + reservationSaveDto.getMemberUserId()));
-                    reservation.setMember(member);
-        } else if (reservationSaveDto.getPhoneNumber() != null) {
-            NonMemberEntity nonMember = nonMemberRepository.findById(reservationSaveDto.getPhoneNumber())
-                    .orElseGet(() -> {
-                        // 비회원이 없으면 새로 생성
-                        System.out.println("DEBUG: Creating new NonMemberEntity with phoneNumber = " + reservationSaveDto.getPhoneNumber());
-                        NonMemberEntity newNonMember = NonMemberEntity.builder()
-                                .phoneNumber(reservationSaveDto.getPhoneNumber())
-                                .build();
-                        NonMemberEntity savedNonMember = nonMemberRepository.save(newNonMember);
-                        System.out.println("DEBUG: Saved NonMemberEntity with phoneNumber = " + savedNonMember.getPhoneNumber());
-                        return savedNonMember;
-                    });
-            reservation.setNonMember(nonMember);
-        } else {
-            throw new IllegalArgumentException("회원 ID 또는 비회원 전화번호 중 하나는 필수입니다.");
-        }
-
-        ReservationEntity savedReservation = reservationRepository.save(reservation);
-        if (savedReservation.getNonMember() != null) {
-            System.out.println("DEBUG: Saved reservation has nonMember with phoneNumber = " + savedReservation.getNonMember().getPhoneNumber());
-        }
-        return savedReservation.getId();
     }
 
     // 예매 결제 완료 처리
@@ -179,6 +193,75 @@ public class ReservationService {
         reservation.setTicketIssuanceStatus("Y"); // 발권으로 변경
 
         return reservation.getId();
+    }
+
+    // 자동 예약 취소를 위한 메서드 추가
+    @Transactional
+    public List<String> cancelExpiredReservations(int timeoutMinutes) {
+        LocalDateTime cutoffTime = LocalDateTime.now().minusMinutes(timeoutMinutes);
+        List<ReservationEntity> expiredReservations = reservationRepository.findUnpaidReservationsOlderThan(cutoffTime);
+        
+        List<String> canceledReservationIds = new ArrayList<>();
+        
+        for (ReservationEntity reservation : expiredReservations) {
+            try {
+                // 이미 발권된 티켓은 취소하지 않음
+                if (!"Y".equals(reservation.getTicketIssuanceStatus())) {
+                    reservation.setStatus("D"); // 예매취소중으로 변경
+                    canceledReservationIds.add(reservation.getId());
+                    System.out.println("자동 취소된 예약: " + reservation.getId() + 
+                                     ", 예약 시간: " + reservation.getReservationTime());
+                }
+            } catch (Exception e) {
+                System.err.println("예약 취소 중 오류 발생: " + reservation.getId() + " - " + e.getMessage());
+            }
+        }
+        
+        return canceledReservationIds;
+    }
+    
+    // 미결제 예약 현황 조회
+    public List<ReservationDto> findUnpaidReservations() {
+        return reservationRepository.findAllUnpaidReservations().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    // 실시간 좌석 상태 조회 (락 포함)
+    @Transactional(readOnly = true, timeout = 10)
+    public List<Integer> getActiveReservedSeatsWithLock(String scheduleId) {
+        try {
+            return reservationRepository.findActiveReservedSeatIdsByScheduleIdWithLock(scheduleId);
+        } catch (PessimisticLockException e) {
+            log.warn("좌석 상태 조회 중 락 경합: {}", scheduleId);
+            // 락 실패시 일반 조회로 폴백
+            return reservationRepository.findReservedSeatIdsByScheduleId(scheduleId);
+        }
+    }
+
+    // 좌석 예약 가능 여부 실시간 체크
+    public boolean isSeatAvailable(String scheduleId, Integer seatId) {
+        return !reservationRepository.existsActiveReservationByScheduleAndSeat(scheduleId, seatId);
+    }
+
+    // 회원/비회원 정보 설정 헬퍼 메서드
+    private void setReservationUser(ReservationEntity reservation, ReservationSaveDto reservationSaveDto) {
+        if (reservationSaveDto.getMemberUserId() != null) {
+            MemberEntity member = memberRepository.findById(reservationSaveDto.getMemberUserId())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. ID: " + reservationSaveDto.getMemberUserId()));
+            reservation.setMember(member);
+        } else if (reservationSaveDto.getPhoneNumber() != null) {
+            NonMemberEntity nonMember = nonMemberRepository.findById(reservationSaveDto.getPhoneNumber())
+                    .orElseGet(() -> {
+                        NonMemberEntity newNonMember = NonMemberEntity.builder()
+                                .phoneNumber(reservationSaveDto.getPhoneNumber())
+                                .build();
+                        return nonMemberRepository.save(newNonMember);
+                    });
+            reservation.setNonMember(nonMember);
+        } else {
+            throw new IllegalArgumentException("회원 ID 또는 비회원 전화번호 중 하나는 필수입니다.");
+        }
     }
 
     // Entity를 DTO로 변환
