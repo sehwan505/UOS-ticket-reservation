@@ -1,6 +1,7 @@
 package com.example.backend.service;
 
 import com.example.backend.dto.CinemaDto;
+import com.example.backend.dto.CinemaSaveDto;
 import com.example.backend.dto.MovieDto;
 import com.example.backend.dto.ScheduleDto;
 import com.example.backend.entity.CinemaEntity;
@@ -139,6 +140,61 @@ public class CinemaService {
         return schedules.stream()
                 .map(this::convertScheduleToDto)
                 .collect(Collectors.toList());
+    }
+    
+    // ===== 관리자 기능 =====
+    
+    // 영화관 등록
+    @Transactional
+    public String saveCinema(CinemaSaveDto cinemaSaveDto) {
+        // 지역 존재 확인
+        RegionEntity region = regionRepository.findById(cinemaSaveDto.getRegionId())
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 지역입니다. ID: " + cinemaSaveDto.getRegionId()));
+        
+        // 영화관 엔티티 생성
+        CinemaEntity cinema = CinemaEntity.builder()
+                .id(cinemaSaveDto.getId())
+                .name(cinemaSaveDto.getName())
+                .location(cinemaSaveDto.getLocation())
+                .region(region)
+                .build();
+        
+        CinemaEntity savedCinema = cinemaRepository.save(cinema);
+        return savedCinema.getId();
+    }
+    
+    // 영화관 정보 수정
+    @Transactional
+    public String updateCinema(String id, CinemaSaveDto cinemaSaveDto) {
+        CinemaEntity cinema = cinemaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 영화관입니다. ID: " + id));
+        
+        // 지역이 변경되는 경우 지역 존재 확인
+        if (!cinema.getRegion().getId().equals(cinemaSaveDto.getRegionId())) {
+            RegionEntity newRegion = regionRepository.findById(cinemaSaveDto.getRegionId())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 지역입니다. ID: " + cinemaSaveDto.getRegionId()));
+            cinema.setRegion(newRegion);
+        }
+        
+        // 영화관 정보 업데이트
+        cinema.setName(cinemaSaveDto.getName());
+        cinema.setLocation(cinemaSaveDto.getLocation());
+        
+        return cinema.getId();
+    }
+    
+    // 영화관 삭제
+    @Transactional
+    public void deleteCinema(String id) {
+        CinemaEntity cinema = cinemaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 영화관입니다. ID: " + id));
+        
+        // 해당 영화관에 상영관이 있는지 확인
+        if (!cinema.getScreens().isEmpty()) {
+            throw new IllegalStateException("상영관이 존재하는 영화관은 삭제할 수 없습니다.");
+        }
+        
+        cinemaRepository.delete(cinema);
     }
     
     // CinemaEntity를 CinemaDto로 변환

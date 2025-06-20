@@ -139,6 +139,17 @@ public class ScheduleService {
         ScheduleEntity schedule = scheduleRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상영일정입니다. ID: " + id));
         
+        // 해당 상영일정에 예약이 있는지 확인
+        if (!schedule.getReservations().isEmpty()) {
+            // 완료된 예약이 있는지 확인
+            boolean hasCompletedReservations = schedule.getReservations().stream()
+                    .anyMatch(reservation -> "Y".equals(reservation.getStatus()));
+            
+            if (hasCompletedReservations) {
+                throw new IllegalStateException("예매 완료된 좌석이 있는 상영 일정은 삭제할 수 없습니다.");
+            }
+        }
+        
         scheduleRepository.delete(schedule);
     }
     
