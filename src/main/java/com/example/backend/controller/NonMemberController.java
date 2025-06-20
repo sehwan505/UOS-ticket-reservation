@@ -25,6 +25,12 @@ public class NonMemberController {
 
     private final NonMemberService nonMemberService;
 
+    /**
+     * 비회원 목록을 조회합니다.
+     * @deprecated 버전 2.0부터 더 이상 사용되지 않습니다. 
+     *             새로운 API를 사용하세요.
+     */
+    @Deprecated(since = "2.0", forRemoval = true)
     @GetMapping("/nonmembers")
     @Operation(
         summary = "비회원 목록 조회",
