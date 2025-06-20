@@ -428,78 +428,85 @@ public class MemberController {
         return ResponseEntity.ok(Map.of("duplicate", isDuplicate));
     }
 
-    // 관리자용 회원 목록 조회
-    @GetMapping("/admin/members")
-    @PreAuthorize("hasRole('ADMIN')")
+    // 회원 탈퇴
+    @DeleteMapping("/members/my")
+    @PreAuthorize("isAuthenticated()")
     @Operation(
-        summary = "전체 회원 목록 조회",
-        description = "관리자가 전체 회원 목록을 조회합니다."
+        summary = "회원 탈퇴",
+        description = "로그인한 사용자의 계정을 삭제합니다."
     )
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "200",
-            description = "회원 목록 조회 성공",
-            content = @Content(
-                mediaType = "application/json",
-                schema = @Schema(implementation = MemberDto.class)
-            )
-        )
-    })
-    public ResponseEntity<List<MemberDto>> getMemberList() {
-        List<MemberDto> members = memberService.findAllMembers();
-        return ResponseEntity.ok(members);
-    }
-
-    // 관리자용 회원 상세 조회
-    @GetMapping("/admin/members/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(
-        summary = "회원 상세 정보 조회",
-        description = "관리자가 특정 회원의 상세 정보와 예매 내역을 조회합니다."
-    )
-    @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "200",
-            description = "회원 상세 조회 성공",
+            description = "회원 탈퇴 성공",
             content = @Content(
                 mediaType = "application/json",
                 examples = @ExampleObject(
                     name = "성공 응답",
                     value = """
                     {
-                        "member": {
-                            "id": 1,
-                            "userId": "testuser",
-                            "name": "홍길동",
-                            "email": "test@example.com",
-                            "points": 1500
-                        },
-                        "reservations": [
-                            {
-                                "id": "R123456",
-                                "movieTitle": "영화 제목",
-                                "scheduleDate": "2024-01-01",
-                                "status": "COMPLETED"
-                            }
-                        ]
+                        "message": "회원 탈퇴가 완료되었습니다."
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "인증되지 않은 사용자",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "인증 오류",
+                    value = """
+                    {
+                        "error": "unauthorized",
+                        "message": "로그인이 필요합니다."
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "사용자를 찾을 수 없음",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "사용자 없음",
+                    value = """
+                    {
+                        "error": "user_not_found",
+                        "message": "해당 사용자를 찾을 수 없습니다."
                     }
                     """
                 )
             )
         )
     })
-    public ResponseEntity<Map<String, Object>> getMemberDetail(
-            @Parameter(description = "회원 ID", required = true)
-            @PathVariable String userId) {
-        
-        MemberDto member = memberService.findMemberById(userId);
-        List<ReservationDto> reservations = reservationService.findReservationsByMember(userId);
-        
-        Map<String, Object> response = Map.of(
-                "member", member,
-                "reservations", reservations
-        );
-        
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> deleteMember() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String userId = auth.getName();
+            
+            // 회원 탈퇴 처리
+            memberService.deleteMember(userId);
+            
+            // 인증 컨텍스트 클리어 (보안상 좋은 습관)
+            SecurityContextHolder.clearContext();
+            
+            return ResponseEntity.ok(Map.of("message", "회원 탈퇴가 완료되었습니다."));
+            
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).body(Map.of(
+                    "error", "user_not_found",
+                    "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of(
+                    "error", "internal_server_error",
+                    "message", "회원 탈퇴 처리 중 오류가 발생했습니다."
+            ));
+        }
     }
 }
