@@ -20,9 +20,11 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/reservations")
@@ -191,11 +193,11 @@ public class ReservationController {
         return ResponseEntity.ok(response);
     }
 
-    // 예매 정보 조회
+    // 예매 정보 조회 (여러 좌석)
     @GetMapping("/confirm")
     @Operation(
         summary = "예매 정보 확인",
-        description = "예매 전 최종 확인을 위한 정보를 조회합니다."
+        description = "예매 전 최종 확인을 위한 정보를 조회합니다. (여러 좌석 지원)"
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -212,16 +214,25 @@ public class ReservationController {
                             "startTime": "10:00",
                             "movieId": 1
                         },
-                        "seat": {
-                            "id": 1,
-                            "row": "A",
-                            "number": 1
-                        },
+                        "seats": [
+                            {
+                                "id": 1,
+                                "row": "A",
+                                "number": 1
+                            },
+                            {
+                                "id": 2,
+                                "row": "A",
+                                "number": 2
+                            }
+                        ],
                         "movie": {
                             "id": 1,
                             "title": "영화 제목",
                             "price": 12000
                         },
+                        "totalPrice": 24000,
+                        "totalSeats": 2,
                         "member": {
                             "id": 1,
                             "name": "홍길동",
@@ -236,13 +247,19 @@ public class ReservationController {
     public ResponseEntity<Map<String, Object>> getReservationInfo(
             @Parameter(description = "스케줄 ID", required = true)
             @RequestParam String scheduleId,
-            @Parameter(description = "좌석 ID", required = true)
-            @RequestParam Integer seatId) {
+            @Parameter(description = "좌석 ID 목록", required = true)
+            @RequestParam List<Integer> seatIds) {
         
-        // 스케줄 및 좌석 정보 조회
+        // 스케줄 정보 조회
         ScheduleDto schedule = scheduleService.findScheduleById(scheduleId);
-        SeatDto seat = seatService.findSeatById(seatId);
         MovieDto movie = movieService.findMovieById(schedule.getMovieId());
+        
+        // 여러 좌석 정보 조회
+        List<SeatDto> seats = new ArrayList<>();
+        for (Integer seatId : seatIds) {
+            SeatDto seat = seatService.findSeatById(seatId);
+            seats.add(seat);
+        }
         
         // JWT에서 로그인 회원 정보 가져오기
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -252,10 +269,17 @@ public class ReservationController {
             member = memberService.findMemberByUserId(auth.getName());
         }
         
+        // 총 가격 계산 (각 좌석의 가격 합계)
+        int totalPrice = seats.stream()
+                .mapToInt(SeatDto::getPrice)
+                .sum();
+        
         Map<String, Object> response = new HashMap<>();
         response.put("schedule", schedule);
-        response.put("seat", seat);
+        response.put("seats", seats);
         response.put("movie", movie);
+        response.put("totalPrice", totalPrice);
+        response.put("totalSeats", seatIds.size());
         if (member != null) {
             response.put("member", member);
         }
@@ -267,7 +291,7 @@ public class ReservationController {
     @PostMapping("/create")
     @Operation(
         summary = "예매 생성",
-        description = "영화 예매를 생성합니다. (결제 전 단계)"
+        description = "영화 예매를 생성합니다. (결제 전 단계) - 여러 좌석 동시 예약 가능"
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -280,7 +304,8 @@ public class ReservationController {
                     value = """
                     {
                         "status": "SUCCESS",
-                        "reservationId": "R123456789",
+                        "reservationIds": ["R123456789", "R123456790"],
+                        "totalSeats": 2,
                         "message": "예매가 생성되었습니다."
                     }
                     """
@@ -297,7 +322,8 @@ public class ReservationController {
                     value = """
                     {
                         "status": "FAIL",
-                        "message": "이미 예약된 좌석입니다."
+                        "message": "이미 예약된 좌석이 포함되어 있습니다.",
+                        "failedSeatIds": [1, 3]
                     }
                     """
                 )
@@ -314,7 +340,7 @@ public class ReservationController {
                         value = """
                         {
                             "scheduleId": "SCH001",
-                            "seatId": 1,
+                            "seatIds": [1, 2, 3],
                             "phoneNumber": "010-1234-5678",
                             "discountCode": "STUDENT",
                             "discountAmount": 2000
@@ -338,21 +364,41 @@ public class ReservationController {
                 System.out.println("DEBUG: No authenticated member found");
             }
             
-            // 예매 정보 저장
-            String reservationId = reservationService.saveReservation(
-                    ReservationSaveDto.builder()
-                            .scheduleId(createDto.getScheduleId())
-                            .seatId(createDto.getSeatId())
-                            .memberUserId(userId)
-                            .phoneNumber(createDto.getPhoneNumber())
-                            .discountCode(createDto.getDiscountCode())
-                            .discountAmount(createDto.getDiscountAmount())
-                            .build()
-            );
+            // 좌석 중복 확인
+            List<Integer> reservedSeatIds = reservationService.findReservedSeatsBySchedule(createDto.getScheduleId());
+            List<Integer> conflictSeats = createDto.getSeatIds().stream()
+                    .filter(reservedSeatIds::contains)
+                    .toList();
+            
+            if (!conflictSeats.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "status", "FAIL",
+                        "message", "이미 예약된 좌석이 포함되어 있습니다.",
+                        "failedSeatIds", conflictSeats
+                ));
+            }
+            
+            // 여러 좌석에 대해 예매 정보 저장
+            List<String> reservationIds = new ArrayList<>();
+            
+            for (Integer seatId : createDto.getSeatIds()) {
+                String reservationId = reservationService.saveReservation(
+                        ReservationSaveDto.builder()
+                                .scheduleId(createDto.getScheduleId())
+                                .seatId(seatId)
+                                .memberUserId(userId)
+                                .phoneNumber(createDto.getPhoneNumber())
+                                .discountCode(createDto.getDiscountCode())
+                                .discountAmount(createDto.getDiscountAmount())
+                                .build()
+                );
+                reservationIds.add(reservationId);
+            }
             
             return ResponseEntity.ok(Map.of(
                     "status", "SUCCESS",
-                    "reservationId", reservationId,
+                    "reservationIds", reservationIds,
+                    "totalSeats", reservationIds.size(),
                     "message", "예매가 생성되었습니다."
             ));
             
@@ -364,11 +410,11 @@ public class ReservationController {
         }
     }
 
-    // 예매 결제 처리
-    @PostMapping("/{reservationId}/payment")
+    // 예매 결제 처리 (여러 예약 동시 결제)
+    @PostMapping("/payment")
     @Operation(
         summary = "예매 결제 처리",
-        description = "생성된 예매에 대해 결제를 처리합니다."
+        description = "생성된 여러 예매에 대해 한 번에 결제를 처리합니다."
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -381,8 +427,10 @@ public class ReservationController {
                     value = """
                     {
                         "status": "SUCCESS",
-                        "reservationId": "R123456789",
+                        "reservationIds": ["R123456789", "R123456790"],
+                        "paymentId": "PAY123456789",
                         "approvalNumber": "AP123456789",
+                        "totalAmount": 24000,
                         "message": "결제가 완료되었습니다."
                     }
                     """
@@ -406,9 +454,7 @@ public class ReservationController {
             )
         )
     })
-    public ResponseEntity<Map<String, Object>> processPayment(
-            @Parameter(description = "예매 ID", required = true)
-            @PathVariable String reservationId,
+    public ResponseEntity<Map<String, Object>> processMultiplePayment(
             @Parameter(
                 description = "결제 정보",
                 required = true,
@@ -417,8 +463,9 @@ public class ReservationController {
                         name = "결제 요청",
                         value = """
                         {
+                            "reservationIds": ["R123456789", "R123456790"],
                             "paymentMethod": "card",
-                            "amount": 10000,
+                            "amount": 24000,
                             "cardOrAccountNumber": "1234-5678-9012-3456",
                             "deductedPoints": 500
                         }
@@ -429,8 +476,30 @@ public class ReservationController {
             @Valid @RequestBody PaymentProcessDto paymentDto) {
         
         try {
-            // 예매 정보 확인
-            ReservationDto reservation = reservationService.findReservationById(reservationId);
+            // 예매 정보들 확인
+            List<ReservationDto> reservations = new ArrayList<>();
+            String memberUserId = null;
+            String scheduleId = null;
+            
+            for (String reservationId : paymentDto.getReservationIds()) {
+                ReservationDto reservation = reservationService.findReservationById(reservationId);
+                reservations.add(reservation);
+                
+                // 첫 번째 예약의 회원 정보와 스케줄 ID 확인
+                if (memberUserId == null) {
+                    memberUserId = reservation.getMemberUserId();
+                    scheduleId = reservation.getScheduleId();
+                } else {
+                    // 모든 예약이 같은 회원과 같은 스케줄인지 확인
+                    if (!Objects.equals(memberUserId, reservation.getMemberUserId()) ||
+                        !Objects.equals(scheduleId, reservation.getScheduleId())) {
+                        return ResponseEntity.badRequest().body(Map.of(
+                                "status", "FAIL",
+                                "message", "서로 다른 회원이나 다른 상영일정의 예약은 함께 결제할 수 없습니다."
+                        ));
+                    }
+                }
+            }
             
             // JWT에서 로그인한 회원 정보 가져오기
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -441,7 +510,7 @@ public class ReservationController {
             }
             
             // 권한 확인 (본인 예매만 결제 가능)
-            if (reservation.getMemberUserId() != null && !reservation.getMemberUserId().equals(member.getUserId())) {
+            if (memberUserId != null && member != null && !memberUserId.equals(member.getUserId())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
                         "status", "FAIL",
                         "message", "결제 권한이 없습니다."
@@ -453,7 +522,7 @@ public class ReservationController {
                     PaymentSaveDto.builder()
                             .method(paymentDto.getPaymentMethod())
                             .amount(paymentDto.getAmount())
-                            .memberUserId(reservation.getMemberUserId())
+                            .memberUserId(memberUserId)
                             .deductedPoints(paymentDto.getDeductedPoints())
                             .build()
             );
@@ -469,10 +538,14 @@ public class ReservationController {
                 // 결제 완료 처리
                 paymentService.completePayment(paymentId);
                 
-                // 예매 완료 처리
-                reservationService.completeReservation(reservationId, paymentId);
+                // 모든 예매 완료 처리
+                for (String reservationId : paymentDto.getReservationIds()) {
+                    reservationService.completeReservation(reservationId, paymentId);
+                }
                 
-                paymentResult.put("reservationId", reservationId);
+                paymentResult.put("reservationIds", paymentDto.getReservationIds());
+                paymentResult.put("paymentId", paymentId);
+                paymentResult.put("totalAmount", paymentDto.getAmount());
                 return ResponseEntity.ok(paymentResult);
             } else {
                 // 결제 실패 시 결제 정보 취소
@@ -840,5 +913,152 @@ public class ReservationController {
         response.put("processTime", LocalDateTime.now());
         
         return ResponseEntity.ok(response);
+    }
+
+    // 여러 예매 일괄 취소
+    @DeleteMapping("/multiple")
+    @Operation(
+        summary = "여러 예매 일괄 취소",
+        description = "여러 예매를 한 번에 취소하고 결제를 환불 처리합니다."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "예매 취소 성공",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "성공 응답",
+                    value = """
+                    {
+                        "status": "SUCCESS",
+                        "canceledReservations": ["R123456789", "R123456790"],
+                        "totalCanceled": 2,
+                        "message": "예매가 취소되었습니다."
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "취소 실패",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "실패 응답",
+                    value = """
+                    {
+                        "status": "FAIL",
+                        "message": "취소 처리에 실패했습니다."
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "권한 없음",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "권한 없음",
+                    value = """
+                    {
+                        "status": "FAIL",
+                        "message": "취소 권한이 없습니다."
+                    }
+                    """
+                )
+            )
+        )
+    })
+    public ResponseEntity<Map<String, Object>> cancelMultipleReservations(
+            @Parameter(description = "예매 ID 목록", required = true)
+            @RequestParam List<String> reservationIds) {
+        try {
+            // 예매 정보들 확인
+            List<ReservationDto> reservations = new ArrayList<>();
+            String memberUserId = null;
+            String paymentId = null;
+            
+            for (String reservationId : reservationIds) {
+                ReservationDto reservation = reservationService.findReservationById(reservationId);
+                reservations.add(reservation);
+                
+                // 첫 번째 예약의 회원 정보와 결제 ID 확인
+                if (memberUserId == null) {
+                    memberUserId = reservation.getMemberUserId();
+                    paymentId = reservation.getPaymentId();
+                } else {
+                    // 모든 예약이 같은 회원과 같은 결제인지 확인
+                    if (!Objects.equals(memberUserId, reservation.getMemberUserId()) ||
+                        !Objects.equals(paymentId, reservation.getPaymentId())) {
+                        return ResponseEntity.badRequest().body(Map.of(
+                                "status", "FAIL",
+                                "message", "서로 다른 회원이나 다른 결제의 예약은 함께 취소할 수 없습니다."
+                        ));
+                    }
+                }
+            }
+            
+            // JWT에서 로그인한 회원 정보 가져오기
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            MemberDto member = null;
+            
+            if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
+                member = memberService.findMemberByUserId(auth.getName());
+            }
+            
+            // 권한 확인 (본인 예매만 취소 가능)
+            if (memberUserId != null && member != null && !memberUserId.equals(member.getUserId())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                        "status", "FAIL",
+                        "message", "취소 권한이 없습니다."
+                ));
+            }
+            
+            // 결제 취소 요청 (은행/카드사 통신)
+            if (paymentId != null) {
+                String approvalNumber = paymentId;
+                Map<String, Object> cancelResult = bankService.requestPaymentCancellation(approvalNumber);
+                    
+                if ("SUCCESS".equals(cancelResult.get("status"))) {
+                    // 결제 취소 처리
+                    paymentService.cancelPayment(paymentId);
+                    
+                    // 모든 예약 취소 처리
+                    for (String reservationId : reservationIds) {
+                        reservationService.cancelReservation(reservationId);
+                    }
+                    
+                    return ResponseEntity.ok(Map.of(
+                            "status", "SUCCESS",
+                            "canceledReservations", reservationIds,
+                            "totalCanceled", reservationIds.size(),
+                            "message", "예매가 취소되었습니다."
+                    ));
+                } else {
+                    return ResponseEntity.badRequest().body(cancelResult);
+                }
+            } else {
+                // 결제 정보가 없는 경우 (결제 전 상태) 바로 취소
+                for (String reservationId : reservationIds) {
+                    reservationService.cancelReservation(reservationId);
+                }
+                
+                return ResponseEntity.ok(Map.of(
+                        "status", "SUCCESS",
+                        "canceledReservations", reservationIds,
+                        "totalCanceled", reservationIds.size(),
+                        "message", "예매가 취소되었습니다."
+                ));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "FAIL",
+                    "message", e.getMessage()
+            ));
+        }
     }
 }

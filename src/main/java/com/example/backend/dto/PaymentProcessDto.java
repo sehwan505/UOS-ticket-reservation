@@ -3,7 +3,9 @@ package com.example.backend.dto;
 import lombok.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Min;
+import java.util.List;
 
 @Getter
 @Setter
@@ -11,6 +13,10 @@ import jakarta.validation.constraints.Min;
 @AllArgsConstructor
 @Builder
 public class PaymentProcessDto {
+    
+    @NotNull(message = "예약 ID 목록은 필수입니다.")
+    @NotEmpty(message = "최소 하나의 예약을 선택해야 합니다.")
+    private List<String> reservationIds;
     
     @NotBlank(message = "결제 방법은 필수입니다.")
     private String paymentMethod;
@@ -24,5 +30,6 @@ public class PaymentProcessDto {
     
     // 포인트 사용 (선택사항)
     @Min(value = 0, message = "사용 포인트는 0 이상이어야 합니다.")
+    @Builder.Default
     private Integer deductedPoints = 0;
 } 
