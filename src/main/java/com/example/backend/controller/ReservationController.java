@@ -1061,4 +1061,170 @@ public class ReservationController {
             ));
         }
     }
+
+    // 예약 전달
+    @PostMapping("/transfer")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(
+        summary = "예약 전달",
+        description = "완료된 예약을 다른 회원에게 전달합니다. (이메일 또는 사용자 ID로 전달 가능)"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "예약 전달 성공",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "성공 응답",
+                    value = """
+                    {
+                        "status": "SUCCESS",
+                        "transferredReservations": ["R123456789", "R123456790"],
+                        "targetMember": {
+                            "userId": "target_user",
+                            "email": "target@example.com"
+                        },
+                        "totalTransferred": 2,
+                        "message": "예약이 성공적으로 전달되었습니다."
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "전달 실패",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "실패 응답",
+                    value = """
+                    {
+                        "status": "FAIL",
+                        "message": "전달받을 회원이 존재하지 않습니다."
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "403",
+            description = "권한 없음",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "권한 없음",
+                    value = """
+                    {
+                        "status": "FAIL",
+                        "message": "예약 전달 권한이 없습니다."
+                    }
+                    """
+                )
+            )
+        )
+    })
+    public ResponseEntity<Map<String, Object>> transferReservations(
+            @Parameter(
+                description = "예약 전달 정보",
+                required = true,
+                content = @Content(
+                    examples = @ExampleObject(
+                        name = "예약 전달 요청",
+                        value = """
+                        {
+                            "reservationIds": ["R123456789", "R123456790"],
+                            "targetUserId": "target_user",
+                            "message": "영화 예약 전달드립니다!"
+                        }
+                        """
+                    )
+                )
+            )
+            @Valid @RequestBody ReservationTransferDto transferDto) {
+        
+        try {
+            // JWT에서 로그인한 회원 정보 가져오기
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            MemberDto currentMember = memberService.findMemberByUserId(auth.getName());
+            
+            // targetUserId와 targetEmail 중 하나만 제공되었는지 확인
+            if ((transferDto.getTargetUserId() == null) == (transferDto.getTargetEmail() == null)) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "status", "FAIL",
+                        "message", "전달받을 사용자의 ID 또는 이메일 중 하나만 입력해주세요."
+                ));
+            }
+            
+            // 전달받을 회원 찾기
+            MemberDto targetMember = null;
+            if (transferDto.getTargetUserId() != null) {
+                targetMember = memberService.findMemberByUserId(transferDto.getTargetUserId());
+                if (targetMember == null) {
+                    return ResponseEntity.badRequest().body(Map.of(
+                            "status", "FAIL",
+                            "message", "전달받을 회원이 존재하지 않습니다. ID: " + transferDto.getTargetUserId()
+                    ));
+                }
+            } else if (transferDto.getTargetEmail() != null) {
+                targetMember = memberService.findMemberByEmail(transferDto.getTargetEmail());
+                if (targetMember == null) {
+                    return ResponseEntity.badRequest().body(Map.of(
+                            "status", "FAIL",
+                            "message", "전달받을 회원이 존재하지 않습니다. Email: " + transferDto.getTargetEmail()
+                    ));
+                }
+            }
+            
+            // 자기 자신에게 전달하는 것 방지
+            if (currentMember.getUserId().equals(targetMember.getUserId())) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "status", "FAIL",
+                        "message", "자기 자신에게는 예약을 전달할 수 없습니다."
+                ));
+            }
+            
+            // 예약들이 현재 로그인한 사용자의 예약인지 확인
+            for (String reservationId : transferDto.getReservationIds()) {
+                ReservationDto reservation = reservationService.findReservationById(reservationId);
+                if (!currentMember.getUserId().equals(reservation.getMemberUserId())) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                            "status", "FAIL",
+                            "message", "본인의 예약만 전달할 수 있습니다. 예약 ID: " + reservationId
+                    ));
+                }
+            }
+            
+            // 예약 전달 실행
+            List<String> transferredIds = reservationService.transferMultipleReservations(
+                    transferDto.getReservationIds(), 
+                    targetMember.getUserId()
+            );
+            
+            if (transferredIds.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "status", "FAIL",
+                        "message", "전달할 수 있는 예약이 없습니다. (완료된 예약만 전달 가능)"
+                ));
+            }
+            
+            return ResponseEntity.ok(Map.of(
+                    "status", "Y",
+                    "transferredReservations", transferredIds,
+                    "targetMember", Map.of(
+                            "userId", targetMember.getUserId(),
+                            "email", targetMember.getEmail()
+                    ),
+                    "totalTransferred", transferredIds.size(),
+                    "message", "예약이 성공적으로 전달되었습니다."
+            ));
+            
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "status", "FAIL",
+                    "message", e.getMessage()
+            ));
+        }
+    }
 }

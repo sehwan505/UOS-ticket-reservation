@@ -145,6 +145,13 @@ public class MemberService implements UserDetailsService {
                 .orElse(null);
     }
     
+    // 이메일로 회원 찾기 메서드 추가
+    public MemberDto findMemberByEmail(String email) {
+        return memberRepository.findByEmail(email)
+                .map(this::convertToDto)
+                .orElse(null);
+    }
+    
     // Entity를 DTO로 변환
     private MemberDto convertToDto(MemberEntity member) {
         return MemberDto.builder()

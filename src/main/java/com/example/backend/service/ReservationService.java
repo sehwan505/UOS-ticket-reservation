@@ -307,4 +307,51 @@ public class ReservationService {
 
         return dto;
     }
+
+    // 예약 소유권 변경 (예약 전달)
+    @Transactional
+    public String transferReservation(String reservationId, String targetUserId) {
+        ReservationEntity reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예매입니다. ID: " + reservationId));
+        
+        // 대상 회원 확인
+        MemberEntity targetMember = memberRepository.findById(targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException("전달받을 회원이 존재하지 않습니다. ID: " + targetUserId));
+        
+        // 예약 상태 확인 (완료된 예약만 전달 가능)
+        if (!"Y".equals(reservation.getStatus())) {
+            throw new IllegalArgumentException("완료된 예약만 전달할 수 있습니다.");
+        }
+        
+        // 기존 회원/비회원 정보 제거
+        reservation.setMember(null);
+        reservation.setNonMember(null);
+        
+        // 새로운 회원으로 설정
+        reservation.setMember(targetMember);
+        
+        return reservation.getId();
+    }
+    
+    // 여러 예약 일괄 전달
+    @Transactional
+    public List<String> transferMultipleReservations(List<String> reservationIds, String targetUserId) {
+        // 대상 회원 확인
+        MemberEntity targetMember = memberRepository.findById(targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException("전달받을 회원이 존재하지 않습니다. ID: " + targetUserId));
+        
+        List<String> transferredIds = new ArrayList<>();
+        
+        for (String reservationId : reservationIds) {
+            try {
+                transferReservation(reservationId, targetUserId);
+                transferredIds.add(reservationId);
+            } catch (Exception e) {
+                // 일부 예약 전달이 실패해도 다른 예약들은 계속 처리
+                System.out.println("예약 전달 실패: " + reservationId + " - " + e.getMessage());
+            }
+        }
+        
+        return transferredIds;
+    }
 }
