@@ -367,7 +367,7 @@ public class ReservationService {
         
         // 할인 적용
         reservation.applyDiscount(discountCode, discountAmount);
-        
+
         log.info("예약 {}에 할인 적용: 코드={}, 금액={}", reservationId, discountCode, discountAmount);
     }
 }

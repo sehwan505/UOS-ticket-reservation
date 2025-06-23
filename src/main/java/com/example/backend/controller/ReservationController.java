@@ -517,9 +517,10 @@ public class ReservationController {
             }
             
             // 할인 코드 유효성 검사 및 금액 확인
+            int expectedDiscountAmount = 0;
             if (paymentDto.getDiscountCode() != null) {
-                int expectedDiscountAmount = StatusConstants.Description.getDiscountAmount(paymentDto.getDiscountCode());
-                if (paymentDto.getDiscountAmount() == null || !paymentDto.getDiscountAmount().equals(expectedDiscountAmount)) {
+                expectedDiscountAmount = StatusConstants.Description.getDiscountAmount(paymentDto.getDiscountCode()) * paymentDto.getReservationIds().size();
+                if (paymentDto.getDiscountAmount() == null || paymentDto.getDiscountAmount() * paymentDto.getReservationIds().size() != expectedDiscountAmount) {
                     return ResponseEntity.badRequest().body(Map.of(
                             "status", "FAIL",
                             "message", "할인 코드에 맞지 않는 할인 금액입니다"
@@ -531,7 +532,7 @@ public class ReservationController {
             String paymentId = paymentService.savePayment(
                     PaymentSaveDto.builder()
                             .method(paymentDto.getPaymentMethod())
-                            .amount(paymentDto.getAmount())
+                            .amount(paymentDto.getAmount() - expectedDiscountAmount - paymentDto.getDeductedPoints())
                             .memberUserId(memberUserId)
                             .deductedPoints(paymentDto.getDeductedPoints())
                             .build()
@@ -547,7 +548,7 @@ public class ReservationController {
             if ("SUCCESS".equals(paymentResult.get("status"))) {
                 // 결제 완료 처리
                 paymentService.completePayment(paymentId);
-                
+
                 // 모든 예매에 할인 코드 적용 및 완료 처리
                 for (String reservationId : paymentDto.getReservationIds()) {
                     // 할인 코드가 있는 경우 적용
