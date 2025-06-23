@@ -8,6 +8,7 @@ import com.example.backend.entity.ReviewEntity;
 import com.example.backend.repository.MemberRepository;
 import com.example.backend.repository.MovieRepository;
 import com.example.backend.repository.ReviewRepository;
+import com.example.backend.constants.BusinessConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -135,7 +136,7 @@ public class ReviewService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 영화입니다. ID: " + movieId));
         
         Double avgRating = reviewRepository.calculateAverageRatingForMovie(movieId);
-        movie.setRating(avgRating != null ? avgRating : 0.0);
+        movie.setRating(avgRating != null ? avgRating : BusinessConstants.Rating.INITIAL_RATING);
         
         movieRepository.save(movie);
     }

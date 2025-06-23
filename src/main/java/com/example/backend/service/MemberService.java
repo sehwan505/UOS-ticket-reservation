@@ -4,6 +4,8 @@ import com.example.backend.dto.MemberDto;
 import com.example.backend.dto.MemberSaveDto;
 import com.example.backend.entity.MemberEntity;
 import com.example.backend.repository.MemberRepository;
+import com.example.backend.constants.StatusConstants;
+import com.example.backend.constants.BusinessConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -72,8 +74,8 @@ public class MemberService implements UserDetailsService {
                 .email(memberSaveDto.getEmail())
                 .phoneNumber(memberSaveDto.getPhoneNumber())
                 .birthDate(memberSaveDto.getBirthDate())
-                .grade("1") // 기본 등급
-                .availablePoints(0) // 초기 포인트 0
+                .grade(StatusConstants.MemberGrade.BASIC) // 기본 등급
+                .availablePoints(BusinessConstants.Points.INITIAL_POINTS) // 초기 포인트 0
                 .build();
         
         MemberEntity savedMember = memberRepository.save(member);

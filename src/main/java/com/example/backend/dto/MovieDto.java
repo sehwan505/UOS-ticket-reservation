@@ -1,5 +1,6 @@
 package com.example.backend.dto;
 
+import com.example.backend.constants.StatusConstants;
 import lombok.*;
 
 import java.math.BigDecimal;
@@ -27,9 +28,9 @@ public class MovieDto {
     // 상영 상태 텍스트 반환
     public String getScreeningStatusText() {
         return switch (screeningStatus) {
-            case "N" -> "상영 예정";
-            case "D" -> "상영중";
-            case "Y" -> "상영 종료";
+            case StatusConstants.Movie.NOT_SCREENING -> "상영 예정";
+            case StatusConstants.Movie.SCREENING -> "상영중";
+            case StatusConstants.Movie.ENDED -> "상영 종료";
             default -> "알 수 없음";
         };
     }

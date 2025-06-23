@@ -1,5 +1,6 @@
 package com.example.backend.dto;
 
+import com.example.backend.constants.StatusConstants;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -21,9 +22,9 @@ public class PaymentDto {
     // 결제 상태 텍스트 반환
     public String getStatusText() {
         return switch (status) {
-            case "N" -> "결제 대기";
-            case "D" -> "결제 중";
-            case "Y" -> "결제 완료";
+            case StatusConstants.Payment.NOT_COMPLETED -> "결제 미완료";
+            case StatusConstants.Payment.PROCESSING -> "결제 중";
+            case StatusConstants.Payment.COMPLETED -> "결제 완료";
             default -> "알 수 없음";
         };
     }

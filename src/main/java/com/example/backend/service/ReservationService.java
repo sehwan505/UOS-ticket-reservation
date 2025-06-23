@@ -5,6 +5,9 @@ import com.example.backend.dto.ReservationSaveDto;
 import com.example.backend.entity.*;
 import com.example.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import com.example.backend.constants.StatusConstants;
+import com.example.backend.constants.BusinessConstants;
+import com.example.backend.util.IdGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +34,7 @@ public class ReservationService {
     private final MemberRepository memberRepository;
     private final NonMemberRepository nonMemberRepository;
     private final PaymentRepository paymentRepository;
+    private final IdGenerator idGenerator;
     
     // 모든 예매 조회
     public List<ReservationDto> findAllReservations() {
@@ -73,7 +77,7 @@ public class ReservationService {
     }
     
     // 예매 등록 (중복 체크 로직 추가)
-    @Transactional(isolation = Isolation.READ_COMMITTED, timeout = 30)
+    @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = BusinessConstants.Transaction.RESERVATION_TIMEOUT_SECONDS)
     public String saveReservation(ReservationSaveDto reservationSaveDto) {
         log.info("예약 생성 시작: 스케줄={}, 좌석={}", reservationSaveDto.getScheduleId(), reservationSaveDto.getSeatId());
         
@@ -102,7 +106,7 @@ public class ReservationService {
             
             // 예매 ID 생성
             int dailyReservationCount = reservationRepository.countCompletedReservationsByScheduleId(schedule.getId()) + 1;
-            String reservationId = schedule.getId() + seat.getId() + String.format("%02d", dailyReservationCount);
+            String reservationId = idGenerator.generateReservationId(schedule.getId(), seat.getId().toString(), dailyReservationCount);
             
             // 예매 엔티티 생성
             ReservationEntity reservation = ReservationEntity.builder()
@@ -110,11 +114,11 @@ public class ReservationService {
                     .schedule(schedule)
                     .seat(seat)
                     .seatGrade(seatGrade)
-                    .status("N") // 예매미완료 상태
+                    .status(StatusConstants.Reservation.NOT_COMPLETED) // 예매미완료 상태
                     .reservationTime(LocalDateTime.now())
                     .basePrice(seatGrade.getPrice())
-                    .discountAmount(0)
-                    .ticketIssuanceStatus("N")
+                    .discountAmount(BusinessConstants.Points.INITIAL_POINTS)
+                    .ticketIssuanceStatus(StatusConstants.TicketIssuance.NOT_ISSUED)
                     .build();
             
             // 할인 적용
@@ -155,7 +159,7 @@ public class ReservationService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 결제입니다. ID: " + paymentId));
 
         // 예매 상태 업데이트
-        reservation.setStatus("Y"); // 예매완료로 변경
+        reservation.setStatus(StatusConstants.Reservation.COMPLETED); // 예매완료로 변경
         reservation.setPayment(payment);
 
         return reservation.getId();
@@ -168,12 +172,12 @@ public class ReservationService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예매입니다. ID: " + reservationId));
 
         // 이미 발권된 티켓은 취소할 수 없음
-        if ("Y".equals(reservation.getTicketIssuanceStatus())) {
+        if (StatusConstants.TicketIssuance.ISSUED.equals(reservation.getTicketIssuanceStatus())) {
             throw new IllegalStateException("이미 발권된 티켓은 취소할 수 없습니다.");
         }
 
         // 예매 상태를 취소로 변경
-        reservation.setStatus("D"); // 예매취소중으로 변경
+        reservation.setStatus(StatusConstants.Reservation.CANCELLED); // 예매취소중으로 변경
 
         return reservation.getId();
     }
@@ -185,12 +189,12 @@ public class ReservationService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예매입니다. ID: " + reservationId));
 
         // 예매가 완료된 경우만 발권 가능
-        if (!"Y".equals(reservation.getStatus())) {
+        if (!StatusConstants.Reservation.COMPLETED.equals(reservation.getStatus())) {
             throw new IllegalStateException("예매가 완료되지 않아 발권할 수 없습니다.");
         }
 
         // 티켓 발권 상태로 변경
-        reservation.setTicketIssuanceStatus("Y"); // 발권으로 변경
+        reservation.setTicketIssuanceStatus(StatusConstants.TicketIssuance.ISSUED); // 발권으로 변경
 
         return reservation.getId();
     }
@@ -206,8 +210,8 @@ public class ReservationService {
         for (ReservationEntity reservation : expiredReservations) {
             try {
                 // 이미 발권된 티켓은 취소하지 않음
-                if (!"Y".equals(reservation.getTicketIssuanceStatus())) {
-                    reservation.setStatus("D"); // 예매취소중으로 변경
+                if (!StatusConstants.TicketIssuance.ISSUED.equals(reservation.getTicketIssuanceStatus())) {
+                    reservation.setStatus(StatusConstants.Reservation.CANCELLED); // 예매취소중으로 변경
                     canceledReservationIds.add(reservation.getId());
                     System.out.println("자동 취소된 예약: " + reservation.getId() + 
                                      ", 예약 시간: " + reservation.getReservationTime());
@@ -228,7 +232,7 @@ public class ReservationService {
     }
 
     // 실시간 좌석 상태 조회 (락 포함)
-    @Transactional(readOnly = true, timeout = 10)
+    @Transactional(readOnly = true, timeout = BusinessConstants.Transaction.READ_TIMEOUT_SECONDS)
     public List<Integer> getActiveReservedSeatsWithLock(String scheduleId) {
         try {
             return reservationRepository.findActiveReservedSeatIdsByScheduleIdWithLock(scheduleId);
@@ -319,7 +323,7 @@ public class ReservationService {
                 .orElseThrow(() -> new IllegalArgumentException("전달받을 회원이 존재하지 않습니다. ID: " + targetUserId));
         
         // 예약 상태 확인 (완료된 예약만 전달 가능)
-        if (!"Y".equals(reservation.getStatus())) {
+        if (!StatusConstants.Reservation.COMPLETED.equals(reservation.getStatus())) {
             throw new IllegalArgumentException("완료된 예약만 전달할 수 있습니다.");
         }
         

@@ -1,5 +1,6 @@
 package com.example.backend.dto;
 
+import com.example.backend.constants.StatusConstants;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -35,29 +36,31 @@ public class ReservationDto {
     // 상태 텍스트 반환
     public String getStatusText() {
         return switch (status) {
-            case "N" -> "예매 중";
-            case "D" -> "예매 취소 중";
-            case "Y" -> "예매 완료";
+            case StatusConstants.Reservation.NOT_COMPLETED -> "예매 미완료";
+            case StatusConstants.Reservation.CANCELLED -> "예매 취소 중";
+            case StatusConstants.Reservation.COMPLETED -> "예매 완료";
             default -> "알 수 없음";
         };
     }
 
     public String getTicketIssuanceStatusText() {
-        return "Y".equals(ticketIssuanceStatus) ? "발권 완료" : "미발권";
+        return StatusConstants.Description.getTicketIssuanceStatus(ticketIssuanceStatus);
     }
 
     // 예매 상태가 완료인지 확인
     public boolean isCompleted() {
-        return "Y".equals(status);
+        return StatusConstants.Reservation.COMPLETED.equals(status);
     }
 
     // 발권 가능한지 확인
     public boolean isTicketIssuable() {
-        return "Y".equals(status) && !"Y".equals(ticketIssuanceStatus);
+        return StatusConstants.Reservation.COMPLETED.equals(status) && 
+               !StatusConstants.TicketIssuance.ISSUED.equals(ticketIssuanceStatus);
     }
 
     // 취소 가능한지 확인
     public boolean isCancellable() {
-        return "Y".equals(status) && !"Y".equals(ticketIssuanceStatus);
+        return StatusConstants.Reservation.COMPLETED.equals(status) && 
+               !StatusConstants.TicketIssuance.ISSUED.equals(ticketIssuanceStatus);
     }
 }

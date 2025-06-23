@@ -8,6 +8,9 @@ import com.example.backend.entity.SeatGradeEntity;
 import com.example.backend.repository.ScreenRepository;
 import com.example.backend.repository.SeatRepository;
 import com.example.backend.repository.SeatGradeRepository;
+import com.example.backend.constants.StatusConstants;
+import com.example.backend.constants.BusinessConstants;
+import com.example.backend.util.IdGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +27,7 @@ public class SeatService {
     private final SeatRepository seatRepository;
     private final ScreenRepository screenRepository;
     private final SeatGradeRepository seatGradeRepository;
+    private final IdGenerator idGenerator;
 
     // 모든 좌석 조회
     public List<SeatDto> findAllSeats() {
@@ -152,7 +156,7 @@ public class SeatService {
         // 해당 좌석에 예약이 있는지 확인
         if (!seat.getReservations().isEmpty()) {
             boolean hasActiveReservations = seat.getReservations().stream()
-                    .anyMatch(reservation -> !"D".equals(reservation.getStatus())); // D = 취소됨
+                    .anyMatch(reservation -> !StatusConstants.Reservation.CANCELLED.equals(reservation.getStatus())); // D = 취소됨
             
             if (hasActiveReservations) {
                 throw new IllegalStateException("예약이 존재하는 좌석은 삭제할 수 없습니다.");
@@ -181,7 +185,7 @@ public class SeatService {
             
             // 각 행의 좌석 생성 (01, 02, 03...)
             for (int j = 1; j <= seatsPerRow; j++) {
-                String column = String.format("%02d", j);
+                String column = idGenerator.generateSeatColumn(j);
                 
                 // 중복 확인
                 boolean exists = seatRepository.existsByScreenAndRowAndColumn(screen, row, column);

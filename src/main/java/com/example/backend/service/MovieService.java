@@ -6,6 +6,7 @@ import com.example.backend.dto.ScheduleDto;
 import com.example.backend.entity.MovieEntity;
 import com.example.backend.entity.ScheduleEntity;
 import com.example.backend.repository.MovieRepository;
+import com.example.backend.constants.BusinessConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -76,7 +77,7 @@ public class MovieService {
                 .viewingGrade(movieSaveDto.getViewingGrade())
                 .description(movieSaveDto.getDescription())
                 .image(movieSaveDto.getImage())
-                .rating(0.0) // 새 영화는 평점 0으로 시작
+                .rating(BusinessConstants.Rating.INITIAL_RATING) // 새 영화는 평점 0으로 시작
                 .build();
         
         MovieEntity savedMovie = movieRepository.save(movie);

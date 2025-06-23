@@ -8,6 +8,9 @@ import com.example.backend.entity.ScreenEntity;
 import com.example.backend.repository.MovieRepository;
 import com.example.backend.repository.ScheduleRepository;
 import com.example.backend.repository.ScreenRepository;
+import com.example.backend.constants.StatusConstants;
+import com.example.backend.constants.BusinessConstants;
+import com.example.backend.util.IdGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +28,7 @@ public class ScheduleService {
     private final ScheduleRepository scheduleRepository;
     private final MovieRepository movieRepository;
     private final ScreenRepository screenRepository;
+    private final IdGenerator idGenerator;
     
     // 모든 상영일정 조회
     public List<ScheduleDto> findAllSchedules() {
@@ -84,14 +88,12 @@ public class ScheduleService {
         
         // 상영시간표번호 생성: YYMMDD + 상영관번호 + 일일상영순서
         String date = scheduleSaveDto.getScreeningDate();
-        String yearMonth = date.substring(2, 6); // YYMM
-        String day = date.substring(6, 8); // DD
         
         // 일일상영순서 계산 (같은 날짜, 같은 상영관에 몇 번째 상영인지)
         int dailyOrder = scheduleRepository.findByScreenAndScreeningDate(screen, date).size() + 1;
         
         // 상영시간표번호 형식: YYMMDD + 상영관번호 + 일일상영순서(2자리)
-        String scheduleId = yearMonth + day + screen.getId() + String.format("%02d", dailyOrder);
+        String scheduleId = idGenerator.generateScheduleId(date, screen.getId(), dailyOrder);
         
         // 상영시작시간 파싱
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmm");
@@ -143,7 +145,7 @@ public class ScheduleService {
         if (!schedule.getReservations().isEmpty()) {
             // 완료된 예약이 있는지 확인
             boolean hasCompletedReservations = schedule.getReservations().stream()
-                    .anyMatch(reservation -> "Y".equals(reservation.getStatus()));
+                    .anyMatch(reservation -> StatusConstants.Reservation.COMPLETED.equals(reservation.getStatus()));
             
             if (hasCompletedReservations) {
                 throw new IllegalStateException("예매 완료된 좌석이 있는 상영 일정은 삭제할 수 없습니다.");

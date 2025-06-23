@@ -8,6 +8,8 @@ import com.example.backend.entity.PointHistoryEntity;
 import com.example.backend.repository.MemberRepository;
 import com.example.backend.repository.PaymentRepository;
 import com.example.backend.repository.PointHistoryRepository;
+import com.example.backend.constants.StatusConstants;
+import com.example.backend.constants.BusinessConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,7 +64,7 @@ public class PaymentService {
                 .method(paymentSaveDto.getMethod())
                 .amount(paymentSaveDto.getAmount())
                 .paymentTime(LocalDateTime.now())
-                .status("N") // 결제미완료로 시작
+                .status(StatusConstants.Payment.NOT_COMPLETED) // 결제미완료로 시작
                 .build();
         
         // 포인트 차감 처리
@@ -83,7 +85,7 @@ public class PaymentService {
             PointHistoryEntity pointHistory = PointHistoryEntity.builder()
                     .member(member)
                     .amount(paymentSaveDto.getDeductedPoints())
-                    .type("U") // 사용
+                    .type(StatusConstants.PointHistory.USE) // 사용
                     .build();
             pointHistoryRepository.save(pointHistory);
         } else {
@@ -100,7 +102,7 @@ public class PaymentService {
         PaymentEntity payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 결제입니다. ID: " + paymentId));
         
-        payment.setStatus("D"); // 결제중으로 변경
+        payment.setStatus(StatusConstants.Payment.PROCESSING); // 결제중으로 변경
         
         return payment.getId();
     }
@@ -114,7 +116,7 @@ public class PaymentService {
         // 결제 승인번호 생성 (실제로는 외부 서비스에서 받아옴)
         String approvalNumber = generateApprovalNumber();
         
-        payment.setStatus("Y"); // 결제완료로 변경
+        payment.setStatus(StatusConstants.Payment.COMPLETED); // 결제완료로 변경
         payment.setApprovalNumber(approvalNumber);
         
         return payment.getId();
@@ -139,7 +141,7 @@ public class PaymentService {
                 PointHistoryEntity pointHistory = PointHistoryEntity.builder()
                         .member(member)
                         .amount(payment.getDeductedPoints())
-                        .type("A") // 적립 (환불)
+                        .type(StatusConstants.PointHistory.ACCUMULATE) // 적립 (환불)
                         .build();
                 pointHistoryRepository.save(pointHistory);
             }

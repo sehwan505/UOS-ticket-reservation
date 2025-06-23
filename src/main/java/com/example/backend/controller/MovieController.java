@@ -70,7 +70,7 @@ public class MovieController {
         )
     })
     public ResponseEntity<Page<MovieDto>> getMovies(
-            @Parameter(description = "상영 상태 (D: 상영중, U: 상영예정, E: 상영종료)")
+            @Parameter(description = "상영 상태 (Y: 상영중, N: 상영예정, D: 상영종료)")
             @RequestParam(required = false) String status,
             @Parameter(description = "페이지 번호", example = "0")
             @RequestParam(defaultValue = "0") int page,

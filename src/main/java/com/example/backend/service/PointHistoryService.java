@@ -5,6 +5,8 @@ import com.example.backend.entity.MemberEntity;
 import com.example.backend.entity.PointHistoryEntity;
 import com.example.backend.repository.MemberRepository;
 import com.example.backend.repository.PointHistoryRepository;
+import com.example.backend.constants.BusinessConstants;
+import com.example.backend.constants.StatusConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,9 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
-
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -58,15 +57,15 @@ public class PointHistoryService {
         int currentPoints = member.getAvailablePoints();
 
         switch (type) {
-            case "A" -> // 적립
+            case StatusConstants.PointHistory.ACCUMULATE -> // 적립
                     member.setAvailablePoints(currentPoints + amount);
-            case "U" -> { // 사용
+            case StatusConstants.PointHistory.USE -> { // 사용
                 if (currentPoints < amount) {
                     throw new IllegalArgumentException("사용 가능한 포인트가 부족합니다.");
                 }
                 member.setAvailablePoints(currentPoints - amount);
             }
-            case "E" -> { // 소멸
+            case StatusConstants.PointHistory.EXPIRE -> { // 소멸
                 int pointsToExpire = Math.min(currentPoints, amount);
                 member.setAvailablePoints(currentPoints - pointsToExpire);
             }
@@ -77,12 +76,12 @@ public class PointHistoryService {
     @Transactional
     public Long addPointsForReservation(String userId, Integer reservationAmount) {
         // 예매 금액의 5% 포인트 적립
-        Integer pointsToAdd = (int) Math.round(reservationAmount * 0.05);
+        Integer pointsToAdd = (int) Math.round(reservationAmount * BusinessConstants.Points.EARNING_RATE);
         
         // 최소 10포인트, 최대 1000포인트 적립
-        pointsToAdd = Math.max(10, Math.min(1000, pointsToAdd));
+        pointsToAdd = Math.max(BusinessConstants.Points.MIN_POINTS, Math.min(BusinessConstants.Points.MAX_POINTS, pointsToAdd));
         
-        return addPointHistory(userId, pointsToAdd, "A");
+        return addPointHistory(userId, pointsToAdd, StatusConstants.PointHistory.ACCUMULATE);
     }
 
     // 회원 포인트 사용 처리
@@ -92,7 +91,7 @@ public class PointHistoryService {
             throw new IllegalArgumentException("사용할 포인트는 0보다 커야 합니다.");
         }
         
-        return addPointHistory(userId, pointsToUse, "U");
+        return addPointHistory(userId, pointsToUse, StatusConstants.PointHistory.USE);
     }
 
     // 회원 포인트 적립 처리
@@ -102,7 +101,7 @@ public class PointHistoryService {
             throw new IllegalArgumentException("적립할 포인트는 0보다 커야 합니다.");
         }
         
-        return addPointHistory(userId, pointsToAdd, "A");
+        return addPointHistory(userId, pointsToAdd, StatusConstants.PointHistory.ACCUMULATE);
     }
 
     // Entity를 DTO로 변환
