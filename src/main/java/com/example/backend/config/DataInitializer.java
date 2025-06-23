@@ -654,7 +654,9 @@ public class DataInitializer implements ApplicationRunner {
                 usedSeats.add(seatKey);
                 
                 MemberEntity member = members.get(random.nextInt(members.size()));
-                
+                if (member.getUserId().equals("admin") || member.getUserId().equals("testuser")) {
+                    continue;
+                }
                 // 기본 가격 (좌석 등급에 따라)
                 int basePrice = seat.getSeatGrade().getPrice();
                 int finalPrice = basePrice;
@@ -775,15 +777,12 @@ public class DataInitializer implements ApplicationRunner {
                         random.nextInt(BusinessConstants.Rating.MAX_RATING - BusinessConstants.Rating.MIN_RATING + 1);
                     
                     // 리뷰 작성일 (영화 개봉일 이후 랜덤)
-                    LocalDate movieReleaseDate = LocalDate.parse(movie.getReleaseDate(), DateTimeFormatter.ofPattern("yyyyMMdd"));
-                    LocalDate reviewDate = movieReleaseDate.plusDays(random.nextInt(100));
                     
                     reviews.add(ReviewEntity.builder()
                         .member(member)
                         .movie(movie)
                         .content(content)
                         .ratingValue(ratingValue)
-                        .createdAt(reviewDate.atTime(random.nextInt(24), random.nextInt(60)))
                         .build());
                 }
             }

@@ -84,8 +84,6 @@ public class ReviewService {
                 .member(member)
                 .ratingValue(reviewSaveDto.getRatingValue())
                 .content(reviewSaveDto.getContent())
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
                 .build();
         
         ReviewEntity savedReview = reviewRepository.save(review);
@@ -106,7 +104,6 @@ public class ReviewService {
         
         review.setRatingValue(reviewSaveDto.getRatingValue());
         review.setContent(reviewSaveDto.getContent());
-        review.setUpdatedAt(LocalDateTime.now());
         
         // 영화 평점 업데이트
         updateMovieRating(review.getMovie().getId());
