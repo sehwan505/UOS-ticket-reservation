@@ -22,7 +22,7 @@ import java.util.List;
 public class MovieEntity extends BaseTimeEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "movie_id")
     private Long id;
 
@@ -63,10 +63,10 @@ public class MovieEntity extends BaseTimeEntity {
     private BigDecimal rating;
 
     @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ScheduleEntity> schedules = new ArrayList<>();
+    private List<ScheduleEntity> schedules;
     
     @OneToMany(mappedBy = "movie", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ReviewEntity> reviews = new ArrayList<>();
+    private List<ReviewEntity> reviews;
 
     // rating getter (convert datatype)
     public double getRating() {

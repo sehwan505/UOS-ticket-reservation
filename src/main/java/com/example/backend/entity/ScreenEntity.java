@@ -33,8 +33,8 @@ public class ScreenEntity {
     private CinemaEntity cinema;
 
     @OneToMany(mappedBy = "screen", cascade = CascadeType.ALL)
-    private List<SeatEntity> seats = new ArrayList<>();
+    private List<SeatEntity> seats;
 
     @OneToMany(mappedBy = "screen", cascade = CascadeType.ALL)
-    private List<ScheduleEntity> schedules = new ArrayList<>();
+    private List<ScheduleEntity> schedules;
 }

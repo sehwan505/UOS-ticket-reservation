@@ -26,5 +26,5 @@ public class RegionEntity {
     private String name;
 
     @OneToMany(mappedBy = "region", cascade = CascadeType.ALL)
-    private List<CinemaEntity> cinemas = new ArrayList<>();
+    private List<CinemaEntity> cinemas;
 }

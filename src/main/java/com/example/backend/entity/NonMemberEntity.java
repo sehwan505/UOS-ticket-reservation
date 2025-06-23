@@ -20,5 +20,5 @@ public class NonMemberEntity extends BaseTimeEntity{
     private String phoneNumber;
 
     @OneToMany(mappedBy = "nonMember", cascade = CascadeType.ALL)
-    private List<ReservationEntity> reservations = new ArrayList<>();
+    private List<ReservationEntity> reservations;
 }

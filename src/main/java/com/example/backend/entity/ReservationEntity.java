@@ -7,16 +7,10 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "reservation", 
-       uniqueConstraints = {
-           @UniqueConstraint(
-               name = "uk_schedule_seat_active",
-               columnNames = {"schedule_id", "seat_id"}
-           )
-       },
        indexes = {
            @Index(name = "idx_reservation_payment", columnList = "payment_id", unique = true),
-           @Index(name = "idx_reservation_member", columnList = "user_id", unique = true),
-           @Index(name = "idx_reservation_nonmember", columnList = "phone_number", unique = true),
+           @Index(name = "idx_reservation_member", columnList = "user_id"),
+           @Index(name = "idx_reservation_nonmember", columnList = "phone_number"),
            @Index(name = "idx_reservation_occupy", columnList = "schedule_id, seat_id", unique = true)
        })
 @Getter
@@ -31,7 +25,8 @@ public class ReservationEntity extends BaseTimeEntity {
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "schedule_id", nullable = false)
+    @JoinColumn(name = "schedule_id", nullable = false, 
+                foreignKey = @ForeignKey(name = "fk_reservation_schedule"))
     private ScheduleEntity schedule;
 
     @ManyToOne(fetch = FetchType.LAZY)

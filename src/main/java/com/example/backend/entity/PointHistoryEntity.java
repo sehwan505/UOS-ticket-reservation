@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "point_history",
        indexes = {
-           @Index(name = "idx_point_history_member", columnList = "user_id", unique = true)
+           @Index(name = "idx_point_history_member", columnList = "user_id")
        })
 @Getter
 @Setter
@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 public class PointHistoryEntity extends BaseTimeEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "point_history_id")
     private Long id;
 

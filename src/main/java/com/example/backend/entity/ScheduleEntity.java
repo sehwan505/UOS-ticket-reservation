@@ -38,5 +38,5 @@ public class ScheduleEntity {
     private LocalDateTime screeningStartTime;
 
     @OneToMany(mappedBy = "schedule", cascade = CascadeType.ALL)
-    private List<ReservationEntity> reservations = new ArrayList<>();
+    private List<ReservationEntity> reservations;
 }

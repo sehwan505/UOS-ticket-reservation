@@ -39,5 +39,5 @@ public class PaymentEntity extends BaseTimeEntity {
     private String approvalNumber;
 
     @OneToMany(mappedBy = "payment", cascade = CascadeType.ALL)
-    private List<ReservationEntity> reservations = new ArrayList<>();
+    private List<ReservationEntity> reservations;
 }

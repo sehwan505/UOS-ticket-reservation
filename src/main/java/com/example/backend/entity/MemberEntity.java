@@ -46,13 +46,13 @@ public class MemberEntity extends BaseTimeEntity implements UserDetails {
     private Integer availablePoints;
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
-    private List<PointHistoryEntity> pointHistories = new ArrayList<>();
+    private List<PointHistoryEntity> pointHistories;
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
-    private List<ReviewEntity> reviews = new ArrayList<>();
+    private List<ReviewEntity> reviews;
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
-    private List<ReservationEntity> reservations = new ArrayList<>();
+    private List<ReservationEntity> reservations;
 
     // UserDetails 구현 메서드
     @Override

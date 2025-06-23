@@ -20,7 +20,7 @@ import java.util.List;
 public class SeatEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "seat_id")
     private Integer id;
 
@@ -39,7 +39,7 @@ public class SeatEntity {
     private ScreenEntity screen;
 
     @OneToMany(mappedBy = "seat", cascade = CascadeType.ALL)
-    private List<ReservationEntity> reservations = new ArrayList<>();
+    private List<ReservationEntity> reservations;
 
     public String getSeatLabel() {
         return row + column;

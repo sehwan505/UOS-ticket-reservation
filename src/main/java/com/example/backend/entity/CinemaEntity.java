@@ -33,5 +33,5 @@ public class CinemaEntity {
     private RegionEntity region;
 
     @OneToMany(mappedBy = "cinema", cascade = CascadeType.ALL)
-    private List<ScreenEntity> screens = new ArrayList<>();
+    private List<ScreenEntity> screens;
 }

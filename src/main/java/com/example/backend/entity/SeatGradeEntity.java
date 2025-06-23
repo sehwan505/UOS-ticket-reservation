@@ -30,5 +30,5 @@ public class SeatGradeEntity {
     private Integer price;
 
     @OneToMany(mappedBy = "seatGrade", cascade = CascadeType.ALL)
-    private List<SeatEntity> seats = new ArrayList<>();
+    private List<SeatEntity> seats;
 }
