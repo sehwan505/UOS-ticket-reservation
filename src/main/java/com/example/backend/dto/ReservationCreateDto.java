@@ -23,7 +23,5 @@ public class ReservationCreateDto {
     // 비회원의 경우 필수, 회원의 경우 선택사항 (JWT에서 추출)
     private String phoneNumber;
     
-    // 할인 관련 (선택사항)
-    private String discountCode;
-    private Integer discountAmount;
+    // 할인 관련 필드 제거됨 - 결제 시 적용
 } 

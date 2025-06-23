@@ -32,4 +32,8 @@ public class PaymentProcessDto {
     @Min(value = 0, message = "사용 포인트는 0 이상이어야 합니다.")
     @Builder.Default
     private Integer deductedPoints = 0;
+    
+    // 할인 관련 필드 추가
+    private String discountCode;
+    private Integer discountAmount;
 } 

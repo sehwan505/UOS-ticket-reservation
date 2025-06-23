@@ -1,5 +1,6 @@
 package com.example.backend.controller;
 
+import com.example.backend.constants.StatusConstants;
 import com.example.backend.dto.*;
 import com.example.backend.service.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -306,7 +307,7 @@ public class ReservationController {
                         "status": "SUCCESS",
                         "reservationIds": ["R123456789", "R123456790"],
                         "totalSeats": 2,
-                        "message": "예매가 생성되었습니다."
+                        "message": "예매가 생성되었습니다. 결제 시 할인 코드를 적용할 수 있습니다."
                     }
                     """
                 )
@@ -341,9 +342,7 @@ public class ReservationController {
                         {
                             "scheduleId": "SCH001",
                             "seatIds": [1, 2, 3],
-                            "phoneNumber": "010-1234-5678",
-                            "discountCode": "STUDENT",
-                            "discountAmount": 2000
+                            "phoneNumber": "010-1234-5678"
                         }
                         """
                     )
@@ -378,7 +377,7 @@ public class ReservationController {
                 ));
             }
             
-            // 여러 좌석에 대해 예매 정보 저장
+            // 여러 좌석에 대해 예매 정보 저장 (할인 없이)
             List<String> reservationIds = new ArrayList<>();
             
             for (Integer seatId : createDto.getSeatIds()) {
@@ -388,8 +387,6 @@ public class ReservationController {
                                 .seatId(seatId)
                                 .memberUserId(userId)
                                 .phoneNumber(createDto.getPhoneNumber())
-                                .discountCode(createDto.getDiscountCode())
-                                .discountAmount(createDto.getDiscountAmount())
                                 .build()
                 );
                 reservationIds.add(reservationId);
@@ -399,7 +396,7 @@ public class ReservationController {
                     "status", "SUCCESS",
                     "reservationIds", reservationIds,
                     "totalSeats", reservationIds.size(),
-                    "message", "예매가 생성되었습니다."
+                    "message", "예매가 생성되었습니다. 결제 시 할인 코드를 적용할 수 있습니다."
             ));
             
         } catch (Exception e) {
@@ -414,7 +411,7 @@ public class ReservationController {
     @PostMapping("/payment")
     @Operation(
         summary = "예매 결제 처리",
-        description = "생성된 여러 예매에 대해 한 번에 결제를 처리합니다."
+        description = "생성된 여러 예매에 대해 한 번에 결제를 처리하고 할인 코드를 적용합니다."
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -467,7 +464,9 @@ public class ReservationController {
                             "paymentMethod": "card",
                             "amount": 24000,
                             "cardOrAccountNumber": "1234-5678-9012-3456",
-                            "deductedPoints": 500
+                            "deductedPoints": 500,
+                            "discountCode": "A",
+                            "discountAmount": 2000
                         }
                         """
                     )
@@ -517,6 +516,17 @@ public class ReservationController {
                 ));
             }
             
+            // 할인 코드 유효성 검사 및 금액 확인
+            if (paymentDto.getDiscountCode() != null) {
+                int expectedDiscountAmount = StatusConstants.Description.getDiscountAmount(paymentDto.getDiscountCode());
+                if (paymentDto.getDiscountAmount() == null || !paymentDto.getDiscountAmount().equals(expectedDiscountAmount)) {
+                    return ResponseEntity.badRequest().body(Map.of(
+                            "status", "FAIL",
+                            "message", "할인 코드에 맞지 않는 할인 금액입니다"
+                    ));
+                }
+            }
+            
             // 결제 정보 저장
             String paymentId = paymentService.savePayment(
                     PaymentSaveDto.builder()
@@ -538,14 +548,28 @@ public class ReservationController {
                 // 결제 완료 처리
                 paymentService.completePayment(paymentId);
                 
-                // 모든 예매 완료 처리
+                // 모든 예매에 할인 코드 적용 및 완료 처리
                 for (String reservationId : paymentDto.getReservationIds()) {
+                    // 할인 코드가 있는 경우 적용
+                    if (paymentDto.getDiscountCode() != null && paymentDto.getDiscountAmount() != null) {
+                        reservationService.applyDiscountToReservation(reservationId, 
+                                paymentDto.getDiscountCode(), paymentDto.getDiscountAmount());
+                    }
                     reservationService.completeReservation(reservationId, paymentId);
                 }
                 
                 paymentResult.put("reservationIds", paymentDto.getReservationIds());
                 paymentResult.put("paymentId", paymentId);
                 paymentResult.put("totalAmount", paymentDto.getAmount());
+                
+                // 할인 정보도 응답에 포함
+                if (paymentDto.getDiscountCode() != null) {
+                    paymentResult.put("appliedDiscount", Map.of(
+                            "code", paymentDto.getDiscountCode(),
+                            "amount", paymentDto.getDiscountAmount()
+                    ));
+                }
+                
                 return ResponseEntity.ok(paymentResult);
             } else {
                 // 결제 실패 시 결제 정보 취소

@@ -67,6 +67,20 @@ public class StatusConstants {
     }
     
     /**
+     * 할인 코드
+     */
+    public static class DiscountCode {
+        public static final String YOUTH_SENIOR = "A";    // 청소년/노인 할인
+        public static final String NIGHT_EARLY = "B";     // 심야/조조 할인
+        public static final String BOTH = "C";        // 둘 다
+        
+        // 할인 금액
+        public static final int YOUTH_SENIOR_AMOUNT = 2000;  // 청소년/노인 할인 2000원
+        public static final int NIGHT_EARLY_AMOUNT = 3000;   // 심야/조조 할인 3000원
+        public static final int BOTH_AMOUNT = 5000;      // 둘 다 할인 3000원
+    }
+
+    /**
      * 상태 설명을 반환하는 유틸리티 메서드들
      */
     public static class Description {
@@ -108,6 +122,24 @@ public class StatusConstants {
         
         public static String getTicketIssuanceStatus(String status) {
             return TicketIssuance.ISSUED.equals(status) ? "발권 완료" : "미발권";
+        }
+        
+        public static String getDiscountCodeDescription(String discountCode) {
+            return switch (discountCode) {
+                case DiscountCode.YOUTH_SENIOR -> "청소년/노인 할인";
+                case DiscountCode.NIGHT_EARLY -> "심야/조조 할인";
+                case DiscountCode.BOTH -> "둘 다 할인";
+                default -> "할인 없음";
+            };
+        }
+        
+        public static int getDiscountAmount(String discountCode) {
+            return switch (discountCode) {
+                case DiscountCode.YOUTH_SENIOR -> DiscountCode.YOUTH_SENIOR_AMOUNT;
+                case DiscountCode.NIGHT_EARLY -> DiscountCode.NIGHT_EARLY_AMOUNT;
+                case DiscountCode.BOTH -> DiscountCode.BOTH_AMOUNT;
+                default -> 0;
+            };
         }
     }
 } 
