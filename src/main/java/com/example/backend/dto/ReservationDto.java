@@ -66,8 +66,7 @@ public class ReservationDto {
 
     // 취소 가능한지 확인
     public boolean isCancellable() {
-        return StatusConstants.Reservation.COMPLETED.equals(status) && 
-               !StatusConstants.TicketIssuance.ISSUED.equals(ticketIssuanceStatus) &&
-               !StatusConstants.Transfer.NOT_TRANSFERRED.equals(isTransferred);
+        return !StatusConstants.TicketIssuance.ISSUED.equals(ticketIssuanceStatus) &&
+               StatusConstants.Transfer.NOT_TRANSFERRED.equals(isTransferred);
     }
 }

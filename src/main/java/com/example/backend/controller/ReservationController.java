@@ -782,7 +782,7 @@ public class ReservationController {
             ReservationDto reservation = reservationService.findReservationById(reservationId);
             
             // 전달된 예약 취소 불가 체크
-            if (StatusConstants.Transfer.NOT_TRANSFERRED.equals(reservation.getIsTransferred())) {
+            if (StatusConstants.Transfer.TRANSFERRED.equals(reservation.getIsTransferred())) {
                 return ResponseEntity.status(499).body(Map.of(
                         "status", "FAIL",
                         "message", "전달된 예약은 취소할 수 없습니다."
@@ -1052,7 +1052,7 @@ public class ReservationController {
                 reservations.add(reservation);
                 
                 // 전달된 예약 취소 불가 체크
-                if (StatusConstants.Transfer.NOT_TRANSFERRED.equals(reservation.getIsTransferred())) {
+                if (StatusConstants.Transfer.TRANSFERRED.equals(reservation.getIsTransferred())) {
                     return ResponseEntity.status(499).body(Map.of(
                             "status", "FAIL",
                             "message", "전달된 예약은 취소할 수 없습니다."

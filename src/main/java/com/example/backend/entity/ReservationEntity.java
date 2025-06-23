@@ -46,7 +46,7 @@ public class ReservationEntity extends BaseTimeEntity {
     @Column(name = "base_price")
     private Integer basePrice;
 
-    @Column(name = "is_transferred", length = 1, nullable = true, columnDefinition = "CHAR(1)")
+    @Column(name = "is_transferred", length = 1, columnDefinition = "CHAR(1) DEFAULT 'N'")
     private String isTransferred;
 
     @Column(name = "discount_code", length = 1, columnDefinition = "CHAR(1)")
