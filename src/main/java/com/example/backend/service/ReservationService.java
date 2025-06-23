@@ -77,7 +77,7 @@ public class ReservationService {
     }
     
     // 예매 등록 (중복 체크 로직 추가)
-    @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = BusinessConstants.Transaction.RESERVATION_TIMEOUT_SECONDS)
+    @Transactional(isolation = Isolation.READ_COMMITTED, timeout = BusinessConstants.Transaction.RESERVATION_TIMEOUT_SECONDS)
     public String saveReservation(ReservationSaveDto reservationSaveDto) {
         log.info("예약 생성 시작: 스케줄={}, 좌석={}", reservationSaveDto.getScheduleId(), reservationSaveDto.getSeatId());
         
@@ -357,5 +357,17 @@ public class ReservationService {
         }
         
         return transferredIds;
+    }
+
+    // 예매에 할인 코드 적용
+    @Transactional
+    public void applyDiscountToReservation(String reservationId, String discountCode, Integer discountAmount) {
+        ReservationEntity reservation = reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예매입니다. ID: " + reservationId));
+        
+        // 할인 적용
+        reservation.applyDiscount(discountCode, discountAmount);
+        
+        log.info("예약 {}에 할인 적용: 코드={}, 금액={}", reservationId, discountCode, discountAmount);
     }
 }
