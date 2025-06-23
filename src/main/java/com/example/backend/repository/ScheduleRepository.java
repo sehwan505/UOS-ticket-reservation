@@ -21,13 +21,13 @@ public interface ScheduleRepository extends JpaRepository<ScheduleEntity, String
     @Query("SELECT DISTINCT s.screeningDate FROM ScheduleEntity s WHERE s.movie.id = :movieId ORDER BY s.screeningDate")
     List<String> findDistinctDatesForMovie(@Param("movieId") Long movieId);
 
-    @Query("SELECT DISTINCT s.movie FROM ScheduleEntity s WHERE s.screen.cinema.id = :cinemaId AND s.movie.screeningStatus = 'D'")
+    @Query("SELECT DISTINCT s.movie FROM ScheduleEntity s WHERE s.screen.cinema.id = :cinemaId AND s.movie.screeningStatus = 'Y'")
     List<MovieEntity> findMoviesByCinema(@Param("cinemaId") String cinemaId);
 
-    @Query("SELECT DISTINCT s.movie FROM ScheduleEntity s WHERE s.screen.cinema.id = :cinemaId AND s.screeningDate = :date AND s.movie.screeningStatus = 'D'")
+    @Query("SELECT DISTINCT s.movie FROM ScheduleEntity s WHERE s.screen.cinema.id = :cinemaId AND s.screeningDate = :date AND s.movie.screeningStatus = 'Y'")
     List<MovieEntity> findMoviesByCinemaAndDate(@Param("cinemaId") String cinemaId, @Param("date") String date);
 
-    @Query("SELECT DISTINCT s.movie FROM ScheduleEntity s WHERE s.screen.cinema.id = :cinemaId AND s.screeningDate >= :currentDate AND s.movie.screeningStatus = 'D'")
+    @Query("SELECT DISTINCT s.movie FROM ScheduleEntity s WHERE s.screen.cinema.id = :cinemaId AND s.screeningDate >= :currentDate AND s.movie.screeningStatus = 'Y'")
     List<MovieEntity> findCurrentMoviesByCinema(@Param("cinemaId") String cinemaId, @Param("currentDate") String currentDate);
 
     @Query("SELECT s FROM ScheduleEntity s WHERE s.screen.cinema.id = :cinemaId AND s.screeningDate = :date ORDER BY s.screeningStartTime")

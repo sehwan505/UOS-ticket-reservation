@@ -166,7 +166,7 @@ public class CinemaController {
         
         return ResponseEntity.ok(response);
     }
-    
+
     // 영화관별 특정 날짜 스케줄 조회
     @GetMapping("/{cinemaId}/schedules/dates/{date}")
     @Operation(
