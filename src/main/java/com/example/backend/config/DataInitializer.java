@@ -33,6 +33,7 @@ public class DataInitializer implements ApplicationRunner {
     private final MemberRepository memberRepository;
     private final ReservationRepository reservationRepository;
     private final ReviewRepository reviewRepository;
+    private final PaymentRepository paymentRepository;
     private final PasswordEncoder passwordEncoder;
     
     private final Random random = new Random();
@@ -48,7 +49,7 @@ public class DataInitializer implements ApplicationRunner {
             initializeMovies();
             initializeSchedules();
             initializeMembers();
-            initializeReservations();
+            initializeFutureReservations();
             initializeReviews();
             
             log.info("✅ 더미 데이터 생성이 완료되었습니다!");
@@ -596,74 +597,128 @@ public class DataInitializer implements ApplicationRunner {
         }
     }
 
-    private void initializeReservations() {
-        if (reservationRepository.count() == 0) {
-            List<MemberEntity> members = memberRepository.findAll();
-            List<ScheduleEntity> schedules = scheduleRepository.findAll();
-            
-            if (members.isEmpty() || schedules.isEmpty()) {
-                log.warn("⚠️ 회원 또는 스케줄 데이터가 없어 예약 생성을 건너뜁니다.");
-                return;
-            }
-            
-            List<ReservationEntity> reservations = new ArrayList<>();
-            
-            // 과거 예약들 생성 (지난 7일간)
-            for (int day = 7; day >= 1; day--) {
-                LocalDate reservationDate = LocalDate.now().minusDays(day);
-                String dateStr = reservationDate.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-                
-                // 해당 날짜의 스케줄들
-                List<ScheduleEntity> daySchedules = schedules.stream()
-                    .filter(s -> s.getScreeningDate().equals(dateStr))
-                    .toList();
-                
-                for (ScheduleEntity schedule : daySchedules) {
-                    // 각 스케줄마다 0-10개의 예약 생성
-                    int reservationCount = random.nextInt(11);
-                    
-                    for (int i = 0; i < reservationCount; i++) {
-                        MemberEntity member = members.get(random.nextInt(members.size()));
-                        
-                        // 예약 상태 결정 (90% 완료, 5% 취소, 5% 대기)
-                        String status;
-                        double statusRand = random.nextDouble();
-                        if (statusRand < 0.9) {
-                            status = "Y"; // 예매완료
-                        } else if (statusRand < 0.95) {
-                            status = "D"; // 예매취소중
-                        } else {
-                            status = "N"; // 예매미완료
-                        }
-                        
-                        // 좌석 선택 (해당 상영관의 좌석 중 랜덤)
-                        List<SeatEntity> screenSeats = seatRepository.findByScreen(schedule.getScreen());
-                        if (!screenSeats.isEmpty()) {
-                            SeatEntity seat = screenSeats.get(random.nextInt(screenSeats.size()));
-                            
-                            // 기본 가격 (좌석 등급에 따라)
-                            int basePrice = seat.getSeatGrade().getPrice();
-                            
-                            reservations.add(ReservationEntity.builder()
-                                .id(generateReservationId(schedule.getId(), seat.getId(), i))
-                                .member(member)
-                                .schedule(schedule)
-                                .seat(seat)
-                                .seatGrade(seat.getSeatGrade())
-                                .reservationTime(reservationDate.atTime(10 + random.nextInt(12), random.nextInt(60))) // reservationDate -> reservationTime
-                                .basePrice(basePrice)
-                                .finalPrice(basePrice)
-                                .status(status)
-                                .ticketIssuanceStatus("N")
-                                .build());
-                        }
-                    }
-                }
-            }
-            
-            reservationRepository.saveAll(reservations);
-            log.info("🎫 예약 데이터 생성 완료: {}건", reservations.size());
+    private void initializeFutureReservations() {
+        List<MemberEntity> members = memberRepository.findAll();
+        List<ScheduleEntity> schedules = scheduleRepository.findAll();
+        
+        if (members.isEmpty() || schedules.isEmpty()) {
+            log.warn("⚠️ 회원 또는 스케줄 데이터가 없어 미래 예약 생성을 건너뜁니다.");
+            return;
         }
+        
+        List<ReservationEntity> reservations = new ArrayList<>();
+        List<PaymentEntity> payments = new ArrayList<>();
+        
+        // 오늘부터 3일간의 예약들 생성
+        LocalDate reservationDate = LocalDate.now().plusDays(1);
+        String dateStr = reservationDate.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        
+        // 해당 날짜의 스케줄들
+        List<ScheduleEntity> daySchedules = schedules.stream()
+            .filter(s -> s.getScreeningDate().equals(dateStr))
+            .toList();
+        
+        for (ScheduleEntity schedule : daySchedules) {
+            // 각 스케줄마다 5-15개의 예약 생성 (미래 예약이므로 더 많이)
+            int reservationCount = 10 + random.nextInt(11); // 10-20개
+            List<SeatEntity> screenSeats = seatRepository.findByScreen(schedule.getScreen());
+
+            if (screenSeats.isEmpty()) continue;
+            
+            // 이미 예약된 좌석 체크를 위한 Set
+            java.util.Set<String> usedSeats = new java.util.HashSet<>();
+            
+            for (int i = 0; i < reservationCount && i < screenSeats.size(); i++) {
+                // 사용하지 않은 좌석 찾기
+                SeatEntity seat;
+                String seatKey;
+                int attempts = 0;
+                do {
+                    seat = screenSeats.get(random.nextInt(screenSeats.size()));
+                    seatKey = schedule.getId() + "_" + seat.getId();
+                    attempts++;
+                } while (usedSeats.contains(seatKey) && attempts < 20);
+                
+                if (usedSeats.contains(seatKey)) continue; // 중복 좌석이면 스킵
+                usedSeats.add(seatKey);
+                
+                MemberEntity member = members.get(random.nextInt(members.size()));
+                
+                // 기본 가격 (좌석 등급에 따라)
+                int basePrice = seat.getSeatGrade().getPrice();
+                int finalPrice = basePrice;
+                
+                // 할인 적용 (30% 확률)
+                String discountCode = null;
+                Integer discountAmount = null;
+                if (random.nextDouble() < 0.3) {
+                    discountCode = "S"; // Student discount
+                    discountAmount = 2000;
+                    finalPrice = Math.max(finalPrice - discountAmount, 5000); // 최소 5000원
+                }
+                
+                // 예약 시간 (과거 ~ 현재)
+                LocalDateTime reservationTime = reservationDate
+                    .minusDays(random.nextInt(7)) // 최대 7일 전에 예약
+                    .atTime(9 + random.nextInt(15), random.nextInt(60));
+                
+                // 결제 정보 생성
+                PaymentEntity payment = createPayment(finalPrice, member);
+                payments.add(payment);
+                
+                // 예약 생성
+                ReservationEntity reservation = ReservationEntity.builder()
+                    .id(generateReservationId(schedule.getId(), seat.getId(), i))
+                    .member(member)
+                    .schedule(schedule)
+                    .seat(seat)
+                    .seatGrade(seat.getSeatGrade())
+                    .reservationTime(reservationTime)
+                    .basePrice(basePrice)
+                    .discountCode(discountCode)
+                    .discountAmount(discountAmount)
+                    .finalPrice(finalPrice)
+                    .payment(payment)
+                    .status("Y") // 예매완료 (미래 예약이므로 대부분 완료)
+                    .ticketIssuanceStatus(random.nextDouble() < 0.3 ? "Y" : "N") // 오늘 상영분의 30%는 발권 완료
+                    .build();
+                
+                reservations.add(reservation);
+            }
+        }
+        
+        // 결제 정보 먼저 저장
+        paymentRepository.saveAll(payments);
+        log.info("💳 결제 데이터 생성 완료: {}건", payments.size());
+        
+        // 예약 정보 저장
+        reservationRepository.saveAll(reservations);
+        log.info("🎫 미래 예약 데이터 생성 완료: {}건 (오늘부터 3일간)", reservations.size());
+    }
+    
+    private PaymentEntity createPayment(int amount, MemberEntity member) {
+        String[] paymentMethods = {"CARD_COMPANY", "BANK_COMPANY"};
+        String paymentMethod = paymentMethods[random.nextInt(paymentMethods.length)];
+        
+        // 포인트 사용 여부 (50% 확률)
+        Integer deductedPoints = null;
+        int finalAmount = amount;
+        if (random.nextDouble() < 0.5 && member.getAvailablePoints() > 0) {
+            // 최대 가능한 포인트 사용 (전체 금액의 50% 또는 보유 포인트 중 작은 값)
+            int maxUsablePoints = Math.min(amount / 2, member.getAvailablePoints());
+            deductedPoints = random.nextInt(maxUsablePoints + 1);
+            finalAmount = amount - deductedPoints;
+        }
+        
+        return PaymentEntity.builder()
+            .id(java.util.UUID.randomUUID().toString())
+            .method(paymentMethod)
+            .deductedPoints(deductedPoints)
+            .amount(finalAmount)
+            .paymentTime(LocalDateTime.now().minusMinutes(random.nextInt(60 * 24 * 7))) // 최대 7일 전 결제
+            .status("Y") // 결제완료
+            .approvalNumber("APV" + System.currentTimeMillis() + random.nextInt(1000))
+            .build();
     }
 
     private void initializeReviews() {
