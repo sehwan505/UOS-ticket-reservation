@@ -517,7 +517,7 @@ public class DataInitializer implements ApplicationRunner {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
         
         // 오늘부터 14일간의 스케줄 생성
-        for (int day = 0; day < 14; day++) {
+        for (int day = 0; day < 7; day++) {
             String date = LocalDate.now().plusDays(day).format(formatter);
             
             for (ScreenEntity screen : screens) {
@@ -573,7 +573,7 @@ public class DataInitializer implements ApplicationRunner {
                 .email("admin@cinema.com")
                 .phoneNumber("01000000000")
                 .birthDate("19800101")
-                .grade(StatusConstants.MemberGrade.BASIC)
+                .grade(StatusConstants.MemberGrade.ADMIN)
                 .availablePoints(100000)
                 .build());
             
@@ -621,7 +621,7 @@ public class DataInitializer implements ApplicationRunner {
         List<PaymentEntity> payments = new ArrayList<>();
         
         // 오늘부터 3일간의 예약들 생성
-        LocalDate reservationDate = LocalDate.now().plusDays(1);
+        LocalDate reservationDate = LocalDate.now();
         String dateStr = reservationDate.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         
         // 해당 날짜의 스케줄들

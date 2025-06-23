@@ -63,7 +63,12 @@ public class StatusConstants {
      * 회원 등급 코드
      */
     public static class MemberGrade {
-        public static final String BASIC = "1";           // 기본 등급
+        public static final String BASIC = "B";          // 기본 등급
+        public static final String SILVER = "S";         // 실버 등급
+        public static final String GOLD = "G";           // 골드 등급
+        public static final String PLATINUM = "P";       // 플래티넘 등급
+        public static final String DIAMOND = "D";       // 다이아몬드 등급
+        public static final String ADMIN = "A";         // 관리자 등급
     }
     
     /**

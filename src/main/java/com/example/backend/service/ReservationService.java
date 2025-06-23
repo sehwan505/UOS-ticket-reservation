@@ -287,6 +287,7 @@ public class ReservationService {
                 .ticketIssuanceStatus(reservation.getTicketIssuanceStatus())
                 .screeningDate(reservation.getSchedule().getScreeningDate())
                 .screeningStartTime(reservation.getSchedule().getScreeningStartTime())
+                .isTransferred(reservation.getIsTransferred())
                 .build();
 
         // 회원 정보 설정
@@ -297,10 +298,7 @@ public class ReservationService {
 
         // 비회원 정보 설정
         if (reservation.getNonMember() != null) {
-            System.out.println("DEBUG: Converting to DTO - nonMember phoneNumber = " + reservation.getNonMember().getPhoneNumber());
             dto.setPhoneNumber(reservation.getNonMember().getPhoneNumber());
-        } else {
-            System.out.println("DEBUG: Converting to DTO - nonMember is null");
         }
 
         // 결제 정보 설정
