@@ -20,7 +20,7 @@ import java.util.List;
 public class ScheduleEntity {
 
     @Id
-    @Column(name = "schedule_id", length = 16)
+    @Column(name = "schedule_id", length = 14)
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -31,7 +31,7 @@ public class ScheduleEntity {
     @JoinColumn(name = "screen_id")
     private ScreenEntity screen;
 
-    @Column(name = "screening_date", length = 8)
+    @Column(name = "screening_date", length = 8, columnDefinition = "CHAR(8)")
     private String screeningDate;
 
     @Column(name = "screening_start_time")

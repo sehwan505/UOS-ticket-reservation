@@ -33,7 +33,7 @@ public class ReservationEntity extends BaseTimeEntity {
     @JoinColumn(name = "seat_id", nullable = false)
     private SeatEntity seat;
 
-    @Column(name = "reservation_status", length = 1, nullable = false)
+    @Column(name = "reservation_status", length = 1, nullable = false, columnDefinition = "CHAR(1)")
     private String status; // N: 예매미완료, D: 예매취소중, Y: 예매완료
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -46,7 +46,10 @@ public class ReservationEntity extends BaseTimeEntity {
     @Column(name = "base_price")
     private Integer basePrice;
 
-    @Column(name = "discount_code", length = 1)
+    @Column(name = "is_transferred", length = 1, nullable = true, columnDefinition = "CHAR(1)")
+    private String isTransferred;
+
+    @Column(name = "discount_code", length = 1, columnDefinition = "CHAR(1)")
     private String discountCode;
 
     @Column(name = "discount_amount")
@@ -67,7 +70,7 @@ public class ReservationEntity extends BaseTimeEntity {
     @JoinColumn(name = "phone_number")
     private NonMemberEntity nonMember;
 
-    @Column(name = "ticket_issuance_status", length = 1, nullable = false)
+    @Column(name = "ticket_issuance_status", length = 1, nullable = false, columnDefinition = "CHAR(1)")
     private String ticketIssuanceStatus; // N: 미발권, Y: 발권
 
     // 예약자가 회원인지 확인

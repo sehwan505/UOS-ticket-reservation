@@ -28,10 +28,10 @@ public class SeatEntity {
     @JoinColumn(name = "seat_grade_id")
     private SeatGradeEntity seatGrade;
 
-    @Column(name = "row_id", length = 1)
+    @Column(name = "row_id", length = 1, columnDefinition = "CHAR(1)")
     private String row;
 
-    @Column(name = "column_id", length = 2)
+    @Column(name = "column_id", length = 2, columnDefinition = "CHAR(2)")
     private String column;
 
     @ManyToOne(fetch = FetchType.LAZY)

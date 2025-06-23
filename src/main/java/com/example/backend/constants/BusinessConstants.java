@@ -89,6 +89,7 @@ public class BusinessConstants {
      */
     public static class Format {
         public static final String TWO_DIGIT_FORMAT = "%02d";  // 2자리 숫자 포맷
+        public static final String FOUR_DIGIT_FORMAT = "%04d"; // 4자리 숫자 포맷
         public static final int COLUMN_FORMAT_WIDTH = 2;       // 열 번호 포맷 너비
     }
 } 

@@ -67,6 +67,14 @@ public class StatusConstants {
     }
     
     /**
+     * 예약 전달 상태 코드
+     */
+    public static class Transfer {
+        public static final String TRANSFERRED = "Y";     // 전달됨
+        public static final String NOT_TRANSFERRED = "N"; // 전달안됨
+    }
+    
+    /**
      * 할인 코드
      */
     public static class DiscountCode {
@@ -139,6 +147,14 @@ public class StatusConstants {
                 case DiscountCode.NIGHT_EARLY -> DiscountCode.NIGHT_EARLY_AMOUNT;
                 case DiscountCode.BOTH -> DiscountCode.BOTH_AMOUNT;
                 default -> 0;
+            };
+        }
+        
+        public static String getTransferStatus(String status) {
+            return switch (status) {
+                case Transfer.TRANSFERRED -> "전달됨";
+                case Transfer.NOT_TRANSFERRED -> "전달안됨";
+                default -> "알 수 없는 상태";
             };
         }
     }

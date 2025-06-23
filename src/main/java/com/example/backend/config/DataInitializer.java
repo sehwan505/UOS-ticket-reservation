@@ -128,7 +128,7 @@ public class DataInitializer implements ApplicationRunner {
                                       BusinessConstants.Seat.MIN_TOTAL_SEATS + 1);
                     
                     screens.add(ScreenEntity.builder()
-                        .id(String.format(BusinessConstants.Format.TWO_DIGIT_FORMAT, screenIdCounter++))
+                        .id(String.format(BusinessConstants.Format.FOUR_DIGIT_FORMAT, screenIdCounter++))
                         .name(i + "관")
                         .totalSeats(totalSeats)
                         .cinema(cinema)

@@ -54,7 +54,7 @@ public class IdGenerator {
      * 상영관 ID 생성 (순차적)
      */
     public String generateScreenId(int screenNumber) {
-        return String.format(BusinessConstants.Format.TWO_DIGIT_FORMAT, screenNumber);
+        return String.format(BusinessConstants.Format.FOUR_DIGIT_FORMAT, screenNumber);
     }
     
     /**

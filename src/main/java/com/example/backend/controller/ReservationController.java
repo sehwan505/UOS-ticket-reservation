@@ -757,6 +757,22 @@ public class ReservationController {
                     """
                 )
             )
+        ),
+        @ApiResponse(
+            responseCode = "499",
+            description = "전달된 예약 취소 불가",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "전달된 예약",
+                    value = """
+                    {
+                        "status": "FAIL",
+                        "message": "전달된 예약은 취소할 수 없습니다."
+                    }
+                    """
+                )
+            )
         )
     })
     public ResponseEntity<Map<String, Object>> cancelReservation(
@@ -764,6 +780,14 @@ public class ReservationController {
             @PathVariable String reservationId) {
         try {
             ReservationDto reservation = reservationService.findReservationById(reservationId);
+            
+            // 전달된 예약 취소 불가 체크
+            if (StatusConstants.Transfer.NOT_TRANSFERRED.equals(reservation.getIsTransferred())) {
+                return ResponseEntity.status(499).body(Map.of(
+                        "status", "FAIL",
+                        "message", "전달된 예약은 취소할 수 없습니다."
+                ));
+            }
             
             // JWT에서 로그인한 회원 정보 가져오기
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -996,6 +1020,22 @@ public class ReservationController {
                     """
                 )
             )
+        ),
+        @ApiResponse(
+            responseCode = "499",
+            description = "전달된 예약 취소 불가",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "전달된 예약",
+                    value = """
+                    {
+                        "status": "FAIL",
+                        "message": "전달된 예약은 취소할 수 없습니다."
+                    }
+                    """
+                )
+            )
         )
     })
     public ResponseEntity<Map<String, Object>> cancelMultipleReservations(
@@ -1010,6 +1050,14 @@ public class ReservationController {
             for (String reservationId : reservationIds) {
                 ReservationDto reservation = reservationService.findReservationById(reservationId);
                 reservations.add(reservation);
+                
+                // 전달된 예약 취소 불가 체크
+                if (StatusConstants.Transfer.NOT_TRANSFERRED.equals(reservation.getIsTransferred())) {
+                    return ResponseEntity.status(499).body(Map.of(
+                            "status", "FAIL",
+                            "message", "전달된 예약은 취소할 수 없습니다."
+                    ));
+                }
                 
                 // 첫 번째 예약의 회원 정보와 결제 ID 확인
                 if (memberUserId == null) {
@@ -1091,7 +1139,7 @@ public class ReservationController {
     @PostMapping("/transfer")
     @PreAuthorize("isAuthenticated()")
     @Operation(
-        summary = "예약 전달",
+        summary = "예매 전달",
         description = "완료된 예약을 다른 회원에게 전달합니다. (이메일 또는 사용자 ID로 전달 가능)"
     )
     @ApiResponses(value = {
@@ -1144,6 +1192,22 @@ public class ReservationController {
                     {
                         "status": "FAIL",
                         "message": "예약 전달 권한이 없습니다."
+                    }
+                    """
+                )
+            )
+        ),
+        @ApiResponse(
+            responseCode = "499",
+            description = "결제 공유 예약 전달 불가",
+            content = @Content(
+                mediaType = "application/json",
+                examples = @ExampleObject(
+                    name = "결제 공유 예약",
+                    value = """
+                    {
+                        "status": "FAIL",
+                        "message": "같은 결제의 예약이 1개만 남으면 전달할 수 없습니다."
                     }
                     """
                 )
@@ -1210,13 +1274,42 @@ public class ReservationController {
                 ));
             }
             
-            // 예약들이 현재 로그인한 사용자의 예약인지 확인
+            // 예약들이 현재 로그인한 사용자의 예약인지 확인 및 payment 공유 체크
+            List<ReservationDto> reservationsToTransfer = new ArrayList<>();
+            Map<String, Integer> paymentCounts = new HashMap<>();
+            
             for (String reservationId : transferDto.getReservationIds()) {
                 ReservationDto reservation = reservationService.findReservationById(reservationId);
                 if (!currentMember.getUserId().equals(reservation.getMemberUserId())) {
                     return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
                             "status", "FAIL",
                             "message", "본인의 예약만 전달할 수 있습니다. 예약 ID: " + reservationId
+                    ));
+                }
+                
+                reservationsToTransfer.add(reservation);
+                
+                // 해당 payment의 총 예약 수 체크
+                if (reservation.getPaymentId() != null) {
+                    paymentCounts.put(reservation.getPaymentId(), 
+                        paymentCounts.getOrDefault(reservation.getPaymentId(), 0) + 1);
+                }
+            }
+            
+            // 같은 payment를 공유하는 예약 체크 (현재 사용자의 예약 중에서)
+            for (String paymentId : paymentCounts.keySet()) {
+                // 현재 사용자의 모든 예약 중에서 해당 paymentId를 가진 예약들 조회
+                List<ReservationDto> userReservations = reservationService.findReservationsByMember(currentMember.getUserId());
+                long totalCountForPayment = userReservations.stream()
+                        .filter(r -> paymentId.equals(r.getPaymentId()))
+                        .count();
+                int transferCount = paymentCounts.get(paymentId);
+
+                // 전달 후 같은 결제의 예약이 1개만 남으면 막기
+                if (totalCountForPayment - transferCount == 0) {
+                    return ResponseEntity.status(499).body(Map.of(
+                            "status", "FAIL",
+                            "message", "같은 결제의 예약이 없으면 전달할 수 없습니다."
                     ));
                 }
             }
@@ -1235,7 +1328,7 @@ public class ReservationController {
             }
             
             return ResponseEntity.ok(Map.of(
-                    "status", "Y",
+                    "status", StatusConstants.Transfer.TRANSFERRED,
                     "transferredReservations", transferredIds,
                     "targetMember", Map.of(
                             "userId", targetMember.getUserId(),

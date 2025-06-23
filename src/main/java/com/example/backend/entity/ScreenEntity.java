@@ -19,7 +19,7 @@ import java.util.List;
 public class ScreenEntity {
 
     @Id
-    @Column(name = "screen_id", length = 2)
+    @Column(name = "screen_id", length = 4, columnDefinition = "CHAR(4)")
     private String id;
 
     @Column(name = "screen_name", length = 10)

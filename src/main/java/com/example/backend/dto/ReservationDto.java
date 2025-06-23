@@ -32,6 +32,7 @@ public class ReservationDto {
     private String phoneNumber;
     private String screeningDate;
     private LocalDateTime screeningStartTime;
+    private String isTransferred;
 
     // 상태 텍스트 반환
     public String getStatusText() {
@@ -45,6 +46,11 @@ public class ReservationDto {
 
     public String getTicketIssuanceStatusText() {
         return StatusConstants.Description.getTicketIssuanceStatus(ticketIssuanceStatus);
+    }
+
+    // 전달 상태 텍스트 반환
+    public String getTransferStatusText() {
+        return StatusConstants.Description.getTransferStatus(isTransferred);
     }
 
     // 예매 상태가 완료인지 확인
@@ -61,6 +67,7 @@ public class ReservationDto {
     // 취소 가능한지 확인
     public boolean isCancellable() {
         return StatusConstants.Reservation.COMPLETED.equals(status) && 
-               !StatusConstants.TicketIssuance.ISSUED.equals(ticketIssuanceStatus);
+               !StatusConstants.TicketIssuance.ISSUED.equals(ticketIssuanceStatus) &&
+               !StatusConstants.Transfer.NOT_TRANSFERRED.equals(isTransferred);
     }
 }

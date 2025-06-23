@@ -20,7 +20,7 @@ import java.util.List;
 public class SeatGradeEntity {
 
     @Id
-    @Column(name = "seat_grade_id", length = 1)
+    @Column(name = "seat_grade_id", length = 1, columnDefinition = "CHAR(1)")
     private String id;
 
     @Column(name = "seat_grade_name", length = 10)

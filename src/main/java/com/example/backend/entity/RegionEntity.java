@@ -19,7 +19,7 @@ import java.util.List;
 public class RegionEntity {
 
     @Id
-    @Column(name = "region_id", length = 2)
+    @Column(name = "region_id", length = 2, columnDefinition = "CHAR(2)")
     private String id;
 
     @Column(name = "region_name", length = 10)

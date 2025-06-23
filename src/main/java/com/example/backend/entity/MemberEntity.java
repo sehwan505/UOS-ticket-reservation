@@ -36,10 +36,10 @@ public class MemberEntity extends BaseTimeEntity implements UserDetails {
     @Column(name = "phone_number", length = 11)
     private String phoneNumber;
 
-    @Column(name = "birth_date", length = 8)
+    @Column(name = "birth_date", length = 8, columnDefinition = "CHAR(8)")
     private String birthDate;
 
-    @Column(name = "member_grade", length = 1)
+    @Column(name = "member_grade", length = 1, columnDefinition = "CHAR(1)")
     private String grade;
 
     @Column(name = "available_points")
