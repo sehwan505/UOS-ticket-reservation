@@ -12,7 +12,10 @@ import java.util.Collections;
 import java.util.List;
 
 @Entity
-@Table(name = "member")
+@Table(name = "member",
+       indexes = {
+           @Index(name = "idx_member_email", columnList = "email_address")
+       })
 @Getter
 @Setter
 @NoArgsConstructor

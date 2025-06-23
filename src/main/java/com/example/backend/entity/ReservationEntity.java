@@ -14,9 +14,10 @@ import java.time.LocalDateTime;
            )
        },
        indexes = {
-           @Index(name = "idx_schedule_seat", columnList = "schedule_id, seat_id"),
-           @Index(name = "idx_reservation_status", columnList = "reservation_status"),
-           @Index(name = "idx_reservation_time", columnList = "reservation_time")
+           @Index(name = "idx_reservation_payment", columnList = "payment_id", unique = true),
+           @Index(name = "idx_reservation_member", columnList = "user_id", unique = true),
+           @Index(name = "idx_reservation_nonmember", columnList = "phone_number", unique = true),
+           @Index(name = "idx_reservation_occupy", columnList = "schedule_id, seat_id", unique = true)
        })
 @Getter
 @Setter

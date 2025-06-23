@@ -7,7 +7,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "seat_grade")
+@Table(name = "seat_grade",
+       indexes = {
+           @Index(name = "idx_seat_grade_name", columnList = "seat_grade_name"),
+           @Index(name = "idx_seat_grade_price", columnList = "seat_price")
+       })
 @Getter
 @Setter
 @NoArgsConstructor

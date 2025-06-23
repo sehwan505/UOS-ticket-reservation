@@ -7,7 +7,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "cinema")
+@Table(name = "cinema",
+       indexes = {
+           @Index(name = "idx_cinema_region", columnList = "cinema_name, region_id", unique = true)
+       })
 @Getter
 @Setter
 @NoArgsConstructor

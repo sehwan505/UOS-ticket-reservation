@@ -8,7 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "schedule")
+@Table(name = "schedule",
+       indexes = {
+           @Index(name = "idx_schedule_occupy", columnList = "screen_id, screening_date, screening_start_time", unique = true)
+       })
 @Getter
 @Setter
 @NoArgsConstructor

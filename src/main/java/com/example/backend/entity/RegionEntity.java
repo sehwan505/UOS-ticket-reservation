@@ -7,7 +7,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "region")
+@Table(name = "region",
+       indexes = {
+           @Index(name = "idx_region_name", columnList = "region_name")
+       })
 @Getter
 @Setter
 @NoArgsConstructor
