@@ -520,7 +520,7 @@ public class ReservationController {
             int expectedDiscountAmount = 0;
             if (paymentDto.getDiscountCode() != null) {
                 expectedDiscountAmount = StatusConstants.Description.getDiscountAmount(paymentDto.getDiscountCode()) * paymentDto.getReservationIds().size();
-                if (paymentDto.getDiscountAmount() == null || paymentDto.getDiscountAmount() * paymentDto.getReservationIds().size() != expectedDiscountAmount) {
+                if (paymentDto.getDiscountAmount() == null || paymentDto.getDiscountAmount() != expectedDiscountAmount) {
                     return ResponseEntity.badRequest().body(Map.of(
                             "status", "FAIL",
                             "message", "할인 코드에 맞지 않는 할인 금액입니다"
@@ -780,6 +780,7 @@ public class ReservationController {
             @PathVariable String reservationId) {
         try {
             ReservationDto reservation = reservationService.findReservationById(reservationId);
+            System.out.println("DEBUG: reservation.getIsTransferred() = " + reservation.getIsTransferred());
             
             // 전달된 예약 취소 불가 체크
             if (StatusConstants.Transfer.TRANSFERRED.equals(reservation.getIsTransferred())) {
@@ -1305,7 +1306,7 @@ public class ReservationController {
                         .count();
                 int transferCount = paymentCounts.get(paymentId);
 
-                // 전달 후 같은 결제의 예약이 1개만 남으면 막기
+                // 전달 후 같은 결제의 예약이 없으면 남으면 막기
                 if (totalCountForPayment - transferCount == 0) {
                     return ResponseEntity.status(499).body(Map.of(
                             "status", "FAIL",

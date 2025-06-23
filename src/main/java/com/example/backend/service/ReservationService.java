@@ -287,8 +287,7 @@ public class ReservationService {
                 .ticketIssuanceStatus(reservation.getTicketIssuanceStatus())
                 .screeningDate(reservation.getSchedule().getScreeningDate())
                 .screeningStartTime(reservation.getSchedule().getScreeningStartTime())
-                .isTransferred(reservation.getIsTransferred() != null ? 
-                    reservation.getIsTransferred() : StatusConstants.Transfer.NOT_TRANSFERRED)
+                .isTransferred(reservation.getIsTransferred())
                 .build();
 
         // 회원 정보 설정
@@ -332,6 +331,7 @@ public class ReservationService {
         
         // 새로운 회원으로 설정
         reservation.setMember(targetMember);
+        reservation.setIsTransferred(StatusConstants.Transfer.TRANSFERRED);
         
         return reservation.getId();
     }

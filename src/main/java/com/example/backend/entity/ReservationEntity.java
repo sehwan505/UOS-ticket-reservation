@@ -47,7 +47,8 @@ public class ReservationEntity extends BaseTimeEntity {
     private Integer basePrice;
 
     @Column(name = "is_transferred", length = 1, columnDefinition = "CHAR(1) DEFAULT 'N'")
-    private String isTransferred;
+    @Builder.Default
+    private String isTransferred = "N";
 
     @Column(name = "discount_code", length = 1, columnDefinition = "CHAR(1)")
     private String discountCode;
