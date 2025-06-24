@@ -13,7 +13,6 @@ public class ReviewDto {
     private Long id;
     private Long movieId;
     private String movieTitle;
-    private Long memberId;
     private String memberUserId;
     private Integer ratingValue;
     private String content;

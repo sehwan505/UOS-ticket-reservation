@@ -7,16 +7,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "seat_grade")
+@Table(name = "seat_grade",
+       indexes = {
+           @Index(name = "idx_seat_grade_name", columnList = "seat_grade_name"),
+           @Index(name = "idx_seat_grade_price", columnList = "seat_price")
+       })
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SeatGrade {
+public class SeatGradeEntity {
 
     @Id
-    @Column(name = "seat_grade_id", length = 1)
+    @Column(name = "seat_grade_id", length = 1, columnDefinition = "CHAR(1)")
     private String id;
 
     @Column(name = "seat_grade_name", length = 10)
@@ -26,5 +30,5 @@ public class SeatGrade {
     private Integer price;
 
     @OneToMany(mappedBy = "seatGrade", cascade = CascadeType.ALL)
-    private List<Seat> seats = new ArrayList<>();
+    private List<SeatEntity> seats;
 }

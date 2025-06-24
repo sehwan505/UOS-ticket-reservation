@@ -3,39 +3,43 @@ package com.example.backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "seat")
+@Table(name = "seat",
+       indexes = {
+           @Index(name = "idx_seat_identify", columnList = "screen_id, row_id, column_id", unique = true)
+       })
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Seat {
+public class SeatEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "seat_id")
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seat_grade_id")
-    private SeatGrade seatGrade;
+    private SeatGradeEntity seatGrade;
 
-    @Column(name = "row_id", length = 1)
+    @Column(name = "row_id", length = 1, columnDefinition = "CHAR(1)")
     private String row;
 
-    @Column(name = "column_id", length = 2)
+    @Column(name = "column_id", length = 2, columnDefinition = "CHAR(2)")
     private String column;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "screen_id")
-    private Screen screen;
+    private ScreenEntity screen;
 
     @OneToMany(mappedBy = "seat", cascade = CascadeType.ALL)
-    private List<Reservation> reservations = new ArrayList<>();
+    private List<ReservationEntity> reservations;
 
     public String getSeatLabel() {
         return row + column;

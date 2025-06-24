@@ -1,5 +1,7 @@
 package com.example.backend.service;
 
+import com.example.backend.constants.BusinessConstants;
+import com.example.backend.util.IdGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +13,12 @@ import java.util.Random;
 @Service
 @Slf4j
 public class BankService {
+    
+    private final IdGenerator idGenerator;
+    
+    public BankService(IdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
+    }
 
     private final Random random = new Random();
     
@@ -22,7 +30,7 @@ public class BankService {
         Map<String, Object> response = new HashMap<>();
         
         // 랜덤으로 승인/실패 결정 (95% 성공률)
-        boolean isApproved = random.nextInt(100) < 95;
+        boolean isApproved = random.nextInt(100) < BusinessConstants.Payment.SUCCESS_RATE;
         
         if (isApproved) {
             response.put("status", "SUCCESS");
@@ -31,7 +39,7 @@ public class BankService {
             response.put("message", "결제가 승인되었습니다.");
         } else {
             response.put("status", "FAIL");
-            response.put("errorCode", "ERR" + random.nextInt(1000));
+            response.put("errorCode", idGenerator.generateErrorCode());
             response.put("message", "결제 승인에 실패했습니다. 카드사에 문의하세요.");
         }
         
@@ -39,7 +47,7 @@ public class BankService {
         
         // 실제 통신에서는 여기서 약간의 지연을 주는 것이 좋음
         try {
-            Thread.sleep(1000);
+            Thread.sleep(BusinessConstants.Payment.PROCESSING_DELAY_MS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -55,7 +63,7 @@ public class BankService {
         Map<String, Object> response = new HashMap<>();
         
         // 랜덤으로 취소/실패 결정 (98% 성공률)
-        boolean isCancelled = random.nextInt(100) < 98;
+        boolean isCancelled = random.nextInt(100) < BusinessConstants.Payment.CANCEL_SUCCESS_RATE;
         
         if (isCancelled) {
             response.put("status", "SUCCESS");
@@ -64,7 +72,7 @@ public class BankService {
             response.put("message", "결제가 취소되었습니다.");
         } else {
             response.put("status", "FAIL");
-            response.put("errorCode", "ERR" + random.nextInt(1000));
+            response.put("errorCode", idGenerator.generateErrorCode());
             response.put("message", "결제 취소에 실패했습니다. 카드사에 문의하세요.");
         }
         
@@ -76,6 +84,6 @@ public class BankService {
     // 더미 승인번호 생성
     private String generateApprovalNumber(String paymentMethod) {
         String prefix = paymentMethod.startsWith("CARD") ? "CD" : "BK";
-        return prefix + System.currentTimeMillis() + random.nextInt(1000);
+        return idGenerator.generateApprovalNumber(prefix);
     }
 }

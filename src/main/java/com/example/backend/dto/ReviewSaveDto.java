@@ -14,7 +14,7 @@ import lombok.*;
 public class ReviewSaveDto {
     private Long movieId;
     
-    private Long memberId;
+    private String memberUserId;
     
     @NotNull(message = "평점은 필수입니다")
     @Min(value = 1, message = "평점은 최소 1점 이상이어야 합니다")

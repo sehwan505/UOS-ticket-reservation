@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>회원가입</title>
+    <style>
+        label { display: block; margin-top: 10px; }
+        input { margin-bottom: 5px; }
+        .error { color: red; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+<h2>회원가입</h2>
+
+<form th:action="@{/signup}" th:object="${memberForm}" method="post">
+    <!-- 아이디 -->
+    <label for="userId">아이디</label>
+    <input type="text" id="userId" th:field="*{userId}" placeholder="영문/숫자/언더바, 4~20자" required />
+    <div th:if="${#fields.hasErrors('userId')}" th:errors="*{userId}" class="error"></div>
+
+    <!-- 비밀번호 -->
+    <label for="password">비밀번호</label>
+    <input type="password" id="password" th:field="*{password}" placeholder="8자 이상" required />
+    <div th:if="${#fields.hasErrors('password')}" th:errors="*{password}" class="error"></div>
+
+    <!-- 이메일 -->
+    <label for="email">이메일</label>
+    <input type="email" id="email" th:field="*{email}" placeholder="example@email.com" required />
+    <div th:if="${#fields.hasErrors('email')}" th:errors="*{email}" class="error"></div>
+
+    <!-- 전화번호 -->
+    <label for="phoneNumber">전화번호</label>
+    <input type="text" id="phoneNumber" th:field="*{phoneNumber}" placeholder="숫자만 입력 (예: 01012345678)" required />
+    <div th:if="${#fields.hasErrors('phoneNumber')}" th:errors="*{phoneNumber}" class="error"></div>
+
+    <!-- 생년월일 -->
+    <label for="birthDate">생년월일</label>
+    <input type="text" id="birthDate" th:field="*{birthDate}" placeholder="YYYYMMDD 형식" required />
+    <div th:if="${#fields.hasErrors('birthDate')}" th:errors="*{birthDate}" class="error"></div>
+
+    <button type="submit">회원가입</button>
+</form>
+
+<p>이미 계정이 있으신가요? <a th:href="@{/login}">로그인하기</a></p>
+</body>
+</html>

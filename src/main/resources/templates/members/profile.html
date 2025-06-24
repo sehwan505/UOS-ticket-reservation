@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>내 정보</title>
+</head>
+<body>
+<h1>내 프로필</h1>
+
+<p><strong>아이디:</strong> <span th:text="${member.userId}">아이디</span></p>
+<p><strong>이메일:</strong> <span th:text="${member.email}">이메일</span></p>
+<p><strong>전화번호:</strong> <span th:text="${member.phoneNumber}">전화번호</span></p>
+
+<a th:href="@{/members/my/edit}">정보 수정</a> |
+<a th:href="@{/logout}">로그아웃</a>
+</body>
+</html>

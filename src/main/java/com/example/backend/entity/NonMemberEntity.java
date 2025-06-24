@@ -1,10 +1,10 @@
 package com.example.backend.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -13,12 +13,12 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class NonMember extends BaseTimeEntity{
+public class NonMemberEntity extends BaseTimeEntity{
 
     @Id
-    @Column(columnDefinition = "CHAR(11)")
+    @Column(name = "phone_number", columnDefinition = "CHAR(11)")
     private String phoneNumber;
 
     @OneToMany(mappedBy = "nonMember", cascade = CascadeType.ALL)
-    private List<Reservation> reservations = new ArrayList<>();
+    private List<ReservationEntity> reservations;
 }

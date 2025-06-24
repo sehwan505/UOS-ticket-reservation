@@ -12,19 +12,18 @@ import java.util.Collections;
 import java.util.List;
 
 @Entity
-@Table(name = "member")
+@Table(name = "member",
+       indexes = {
+           @Index(name = "idx_member_email", columnList = "email_address")
+       })
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Member extends BaseTimeEntity implements UserDetails {
+public class MemberEntity extends BaseTimeEntity implements UserDetails {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "member_id")
-    private Long id;
-
     @Column(name = "user_id", length = 20, unique = true)
     private String userId;
 
@@ -37,27 +36,34 @@ public class Member extends BaseTimeEntity implements UserDetails {
     @Column(name = "phone_number", length = 11)
     private String phoneNumber;
 
-    @Column(name = "birth_date", length = 8)
+    @Column(name = "birth_date", length = 8, columnDefinition = "CHAR(8)")
     private String birthDate;
 
-    @Column(name = "member_grade", length = 1)
+    @Column(name = "member_grade", length = 1, columnDefinition = "CHAR(1)")
     private String grade;
 
     @Column(name = "available_points")
     private Integer availablePoints;
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
-    private List<PointHistory> pointHistories = new ArrayList<>();
+    private List<PointHistoryEntity> pointHistories;
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
-    private List<Review> reviews = new ArrayList<>();
+    private List<ReviewEntity> reviews;
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL)
-    private List<Reservation> reservations = new ArrayList<>();
+    private List<ReservationEntity> reservations;
 
     // UserDetails 구현 메서드
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
+        // grade가 "A"인 경우 관리자 권한 부여
+        if ("A".equals(this.grade)) {
+            return List.of(
+                new SimpleGrantedAuthority("ROLE_ADMIN"),
+                new SimpleGrantedAuthority("ROLE_USER")
+            );
+        }
         return Collections.singleton(new SimpleGrantedAuthority("ROLE_USER"));
     }
 

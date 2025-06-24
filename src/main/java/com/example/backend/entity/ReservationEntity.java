@@ -6,40 +6,51 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "reservation")
+@Table(name = "reservation", 
+       indexes = {
+           @Index(name = "idx_reservation_payment", columnList = "payment_id"),
+           @Index(name = "idx_reservation_member", columnList = "user_id"),
+           @Index(name = "idx_reservation_nonmember", columnList = "phone_number"),
+           @Index(name = "idx_reservation_occupy", columnList = "schedule_id, seat_id", unique = true)
+       })
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Reservation extends BaseTimeEntity {
+public class ReservationEntity extends BaseTimeEntity {
 
     @Id
-    @Column(name = "reservation_id", length = 14)
+    @Column(name = "reservation_id", length = 32)
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "schedule_id")
-    private Schedule schedule;
+    @JoinColumn(name = "schedule_id", nullable = false, 
+                foreignKey = @ForeignKey(name = "fk_reservation_schedule"))
+    private ScheduleEntity schedule;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "seat_id")
-    private Seat seat;
+    @JoinColumn(name = "seat_id", nullable = false)
+    private SeatEntity seat;
 
-    @Column(name = "reservation_status", length = 1)
+    @Column(name = "reservation_status", length = 1, nullable = false, columnDefinition = "CHAR(1)")
     private String status; // N: 예매미완료, D: 예매취소중, Y: 예매완료
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seat_grade_id")
-    private SeatGrade seatGrade;
+    private SeatGradeEntity seatGrade;
 
-    @Column(name = "reservation_time")
+    @Column(name = "reservation_time", nullable = false)
     private LocalDateTime reservationTime;
 
     @Column(name = "base_price")
     private Integer basePrice;
 
-    @Column(name = "discount_code", length = 1)
+    @Column(name = "is_transferred", length = 1, columnDefinition = "CHAR(1) DEFAULT 'N'")
+    @Builder.Default
+    private String isTransferred = "N";
+
+    @Column(name = "discount_code", length = 1, columnDefinition = "CHAR(1)")
     private String discountCode;
 
     @Column(name = "discount_amount")
@@ -50,17 +61,17 @@ public class Reservation extends BaseTimeEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payment_id")
-    private Payment payment;
+    private PaymentEntity payment;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id")
-    private Member member;
+    @JoinColumn(name = "user_id")
+    private MemberEntity member;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "phone_number")
-    private NonMember nonMember;
+    private NonMemberEntity nonMember;
 
-    @Column(name = "ticket_issuance_status", length = 1)
+    @Column(name = "ticket_issuance_status", length = 1, nullable = false, columnDefinition = "CHAR(1)")
     private String ticketIssuanceStatus; // N: 미발권, Y: 발권
 
     // 예약자가 회원인지 확인
