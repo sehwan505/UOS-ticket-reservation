@@ -2,6 +2,7 @@ package com.example.backend.dto;
 
 import com.example.backend.constants.StatusConstants;
 import lombok.*;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -13,6 +14,7 @@ public class PointHistoryDto {
     private String memberUserId;
     private Integer amount;
     private String type;
+    private LocalDateTime createdAt;
     
     // 포인트 타입 텍스트 반환
     public String getTypeText() {
