@@ -13,7 +13,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -42,7 +41,6 @@ public class PointHistoryService {
                 .member(member)
                 .amount(amount)
                 .type(type)
-                .pointTime(LocalDateTime.now())
                 .build();
 
         // 회원 포인트 업데이트
@@ -111,7 +109,6 @@ public class PointHistoryService {
                 .memberUserId(pointHistory.getMember().getUserId())
                 .amount(pointHistory.getAmount())
                 .type(pointHistory.getType())
-                .pointTime(pointHistory.getPointTime())
                 .build();
     }
 }

@@ -3,8 +3,6 @@ package com.example.backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Table(name = "point_history",
        indexes = {
@@ -31,12 +29,4 @@ public class PointHistoryEntity extends BaseTimeEntity {
 
     @Column(name = "point_type", length = 1, columnDefinition = "CHAR(1)")
     private String type; // 적립(A)/사용(U)/소멸(E)
-
-    @Column(name = "point_time")
-    private LocalDateTime pointTime;
-
-    @PrePersist
-    public void prePersist() {
-        this.pointTime = LocalDateTime.now();
-    }
 }
