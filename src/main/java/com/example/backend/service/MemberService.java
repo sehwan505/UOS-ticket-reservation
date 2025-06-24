@@ -91,6 +91,7 @@ public class MemberService implements UserDetailsService {
         // 기본 정보 업데이트
         member.setEmail(memberSaveDto.getEmail());
         member.setPhoneNumber(memberSaveDto.getPhoneNumber());
+        member.setBirthDate(memberSaveDto.getBirthDate());
         
         // 비밀번호 변경 (새 비밀번호가 제공된 경우)
         if (memberSaveDto.getPassword() != null && !memberSaveDto.getPassword().isEmpty()) {
