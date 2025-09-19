@@ -5,7 +5,7 @@
 본 프로젝트는 2025년 1학기 서울시립대학교 '데이터베이스 설계' 강의의 팀 프로젝트로 진행된 영화 예매 서비스의 백엔드 API 서버입니다.
 
 사용자는 영화 정보를 조회하고, 원하는 좌석을 선택하여 예매할 수 있으며, 리뷰를 작성하는 등의 활동을 할 수 있습니다. 백엔드는 Spring Boot를 기반으로 구축되었으며, 데이터베이스로 Oracle21C 버전을 사용합니다.
-[데이터 베이스 설계 문서 바로가기](https://drive.google.com/file/d/1z7xc4EzItsYpopO6_EwVMd-Hvc3nt1yU/view?usp=sharing)
+[데이터 베이스 설계 문서 바로가기]([https://drive.google.com/file/d/1z7xc4EzItsYpopO6_EwVMd-Hvc3nt1yU/view?usp=sharing](https://drive.google.com/file/d/1jcEwRmVn2VV1ybDrWKATp61RlE2-myfk/view?usp=sharing))
 
 ## 2. 주요 기능
 
